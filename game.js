@@ -88,12 +88,34 @@ function Game(canvas){
 		ctx.fillText(level, 120, 30);		
 	}
 	
+	function dateTimeString (date){
+		var d = [date.getMonth() + 1, date.getDate(), date.getFullYear()].join("/");
+		var t = [date.getHours() % 12, date.getMinutes(), date.getSeconds()].join(":");
+		return d + " " + t;
+	};
+	
 	this.updateGameState = function(){
 		if(player.destroyed){
 			if(player.lives <= 0){
 				gameOver = true;
 				this.started = false;
-				this.displayMessage("Game Over!\n Score: "+score);
+				var highscores = JSON.parse(window.localStorage.getItem("asteroidsjs.highscores"));
+				if(!highscores){
+					highscores = [];
+				}
+				function compare(score1, score2){
+					if(score1.score === score2.score){
+						return 0;
+					}
+					return score2.score - score1.score;
+				}
+				
+				highscores.push({score: score, date: dateTimeString(new Date())});
+				highscores.sort(compare);
+				highscores.splice(10); //only keep the top 10!
+				var newHighScore = highscores[0].score === score;
+				window.localStorage.setItem("asteroidsjs.highscores", JSON.stringify(highscores));
+				this.displayHighscores(highscores, newHighScore);			
 			}
 		}
 		else if(asteroids.length === 0){
@@ -246,6 +268,42 @@ function Game(canvas){
 		ctx.fillStyle = "white";
 		ctx.font = "bold 24px Arial";
 		ctx.fillText(message, (canvas.width / 2) - 100, (canvas.height / 2) - 24);
+	}
+	
+	this.displayHighscores = function(highscores, newHighScore){
+		clear();
+		ctx.fillStyle = "white";
+		ctx.font = "bold 24px Arial";
+		var x = (canvas.width / 2) - 50;
+		var y =(canvas.height / 2) - 100;
+		var message = "Game Over!";
+		ctx.fillText(message, x, y);
+		y += 30;
+		if(newHighScore){
+			ctx.fillStyle = "red";
+			x -= 40;
+			ctx.fillText(" NEW HIGH SCORE!!", x, y);
+			ctx.fillStyle = "white";
+			x -= 20;
+			y += 40;
+		}
+		else{
+			x -= 60
+		}
+		for(var i = 0; i < highscores.length; i++){
+			var aScore = highscores[i];
+			if(aScore.score === score){
+				ctx.fillStyle = "green";
+				ctx.font = "bold 22px Arial";
+			}
+			else{
+				ctx.fillStyle = "white";
+				ctx.font = "bold 18px Arial";
+			}
+			ctx.fillText(aScore.score, x, y);
+			ctx.fillText(aScore.date, x + 75, y);
+			y += 25;
+		}
 	}
 	
 	this.displayMessage("Press Enter to Start");
