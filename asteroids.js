@@ -1,12 +1,16 @@
 window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
 				  window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
 
-var space = document.getElementById("space");
-space.height = 600;
-space.width = 800;
-
+////////////////////////////////////////////////
+//  Utility functions
+///////////////////////////////////////////////
+				  
 function distance(p1, p2){
 	return Math.sqrt(Math.pow((p2.x - p1.x), 2) + Math.pow((p2.y - p1.y), 2));
+}
+
+function midpoint(p1, p2){
+	return {x: (p2.x + p1.x) / 2, y: (p2.y + p1.y) / 2};
 }
 
 function pythagorean(a, b){
@@ -129,5 +133,13 @@ function getArcCoordinates ( x, y, degAngle, radius){
 	};
 }
 
+////////////////////////////////////////////////
+//  Initialize the game
+///////////////////////////////////////////////
+
+
+var space = document.getElementById("space");
+space.height = window.innerHeight - 50;
+space.width = window.innerWidth - 50;
 var game = new Game(space);
 

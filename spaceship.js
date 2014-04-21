@@ -7,15 +7,14 @@ function spaceship(canvas){
 	
 	var fuzz = 1e-4; //handle 0-ish floats
 	var MAX_SPEED = 25; //max vector magnitude of velocity
-	var TURN_SPEED = 21; //degrees per rotate command	
+	var TURN_SPEED = 30; //degrees per rotate command	
 	var lastShot = (new Date()).getTime();
 	var shotDelay = 125; //millis
 	this.boosterCount = 0;
 	
 	this.getVelocity = function(){
 		return Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.y * this.velocity.y);
-	}
-	
+	}	
 	
 	this.smokeTrail = function(){
 		if(this.boosterCount == 0){
@@ -77,13 +76,23 @@ function spaceship(canvas){
 		
 		return [{x: minX, y: minY}, {x: maxX, y: minY}, {x: maxX, y: maxY}, {x: minX, y: maxY}];
 	};
-	
+
+	this.rotationBuffer = 0;
+	this.rotationSpeed = 0;
 	this.rotate = function(sign){
-		if(sign < 0){
-			this.angle += toRadians(TURN_SPEED);
+		if(this.rotationBuffer > 0){
+			this.rotationSpeed = 20;
 		}
 		else{
-			this.angle -= toRadians(TURN_SPEED);
+			this.rotationSpeed = 5;
+		}
+		this.rotationSpeed = this.rotationSpeed > TURN_SPEED ? TURN_SPEED : this.rotationSpeed;
+		this.rotationBuffer += 10;
+		if(sign < 0){
+			this.angle += toRadians(this.rotationSpeed);
+		}
+		else{
+			this.angle -= toRadians(this.rotationSpeed);
 		}				
 		if(this.angle < 0){
 			this.angle = (Math.PI * 2) + this.angle;
@@ -106,6 +115,14 @@ function spaceship(canvas){
 	this.destroy = function(){
 		this.lives--;
 		this.destroyed = true;
+	}
+	
+	this.update = function(){
+		spaceship.prototype.update.call(this);
+		this.paint();
+		this.rotationBuffer -= 1;
+		this.rotationBuffer = this.rotationBuffer < 0 ? 0 : this.rotationBuffer;
+		
 	}
 	
 	this.paint = function(){
@@ -149,7 +166,7 @@ function spaceship(canvas){
 		ctx.fill();
 
 		var point = points[2];		
-		this.game.addItem(new smoke(this.canvas, point.x, point.y, this.angle));		
+		this.game.addEffect(new smoke(this.canvas, point.x, point.y, this.angle));		
 	}
 
 	this.reset = function(){

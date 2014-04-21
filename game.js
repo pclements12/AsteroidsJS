@@ -5,6 +5,7 @@ function Game(canvas){
 	var gameOver = false;
 	var player;
 	var items = [];
+	var effects = [];
 	var asteroids = [];
 	var score;
 	
@@ -80,6 +81,11 @@ function Game(canvas){
 		items.push(spaceObject);
 	}
 	
+	this.addEffect = function(spaceObject){
+		spaceObject.setGame(this);
+		effects.push(spaceObject);
+	}
+	
 	this.drawStatus = function(){
 		ctx.fillStyle = "white";
 		ctx.font = "bold 11px Arial";
@@ -88,9 +94,21 @@ function Game(canvas){
 		ctx.fillText(level, 120, 30);		
 	}
 	
+	function pad(array){
+		for(var i = 0; i < array.length; i++){
+			var str = String(array[i]);
+			while(str.length < 2){
+				str = "0" + str;
+			}
+			array[i] = str;
+		}
+	}
+	
 	function dateTimeString (date){
 		var d = [date.getMonth() + 1, date.getDate(), date.getFullYear()].join("/");
-		var t = [date.getHours() % 12, date.getMinutes(), date.getSeconds()].join(":");
+		var t = [date.getHours() % 13, date.getMinutes(), date.getSeconds()];
+		pad(t);
+		t = t.join(":");
 		return d + " " + t;
 	};
 	
@@ -148,6 +166,14 @@ function Game(canvas){
 				}
 				items[i].update();
 			}
+			for(var i = 0; i < effects.length; i++){
+				if(effects[i].destroyed){
+					effects.splice(i, 1);
+				}
+				else{
+					effects[i].update();
+				}
+			}
 			this.drawStatus();
 			requestAnimationFrame(this.draw);
 		}
@@ -179,6 +205,7 @@ function Game(canvas){
 		roundOver = false;
 		items = [];
 		asteroids = [];
+		effects = [];
 		this.start();
 	}
 	
@@ -188,6 +215,7 @@ function Game(canvas){
 		}
 		items = [];
 		asteroids = [];
+		effects = [];
 		
 		var astrCount = 6 + level;
 		
@@ -253,6 +281,11 @@ function Game(canvas){
 					if(this.isCollision(box1, box2)){
 						item1.destroy();
 						item2.destroy();
+						var point = midpoint({x:item1.x, y:item1.y}, {x:item2.x, y:item2.y});
+						var width1 = box1[1].x - box1[0].x
+						var width2 = box2[1].x - box2[0].x;
+						var radius = width1 > width2 ? width1 / 2 : width2 / 2;
+						this.addEffect(new explosion(canvas, point.x, point.y, radius));
 					}
 				}				
 			}
