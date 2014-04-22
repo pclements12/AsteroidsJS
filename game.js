@@ -9,6 +9,13 @@ function Game(canvas){
 	var asteroids = [];
 	var score;
 	
+	var scoreLabel = document.getElementById("score");
+	var livesLabel = document.getElementById("lives");
+	var levelLabel = document.getElementById("level");
+	
+	var messageDiv = document.getElementById("message");
+	var highscoresDiv = document.getElementById("highscores");
+	
 	var keyListener = (function(game){
 		var left = false;
 		var right = false;
@@ -16,7 +23,6 @@ function Game(canvas){
 		var shoot = false;
 
 		return function(e){
-		
 			if(e.keyCode === 13 && !game.started){
 				game.start();
 			}
@@ -52,7 +58,16 @@ function Game(canvas){
 				case 32:
 					shoot = down;
 					break;
+				//p
+				case 80:
+					game.pause();
+					break;
+				//o
+				case 79:
+					game.unpause();
+					break;
 			};
+			//console.log("keydown, left", left, "right", right, "up", up, "shoot", shoot, (new Date()).getTime());
 			if(left){
 				player.rotateLeft();
 			}
@@ -87,11 +102,9 @@ function Game(canvas){
 	}
 	
 	this.drawStatus = function(){
-		ctx.fillStyle = "white";
-		ctx.font = "bold 11px Arial";
-		ctx.fillText(score, 30, 30);
-		ctx.fillText(player.lives, 100, 30);
-		ctx.fillText(level, 120, 30);		
+		scoreLabel.innerHTML = score;
+		livesLabel.innerHTML = player.lives;
+		levelLabel.innerHTML = level;	
 	}
 	
 	function pad(array){
@@ -106,7 +119,7 @@ function Game(canvas){
 	
 	function dateTimeString (date){
 		var d = [date.getMonth() + 1, date.getDate(), date.getFullYear()].join("/");
-		var t = [date.getHours() % 13, date.getMinutes(), date.getSeconds()];
+		var t = [date.getHours() > 12 ? date.getHours() % 12 : date.getHours(), date.getMinutes(), date.getSeconds()];
 		pad(t);
 		t = t.join(":");
 		return d + " " + t;
@@ -141,8 +154,26 @@ function Game(canvas){
 		}
 	}
 	
+	var pause = false;
+	this.pause = function(){
+		pause = true;
+		this.displayMessage("Paused. Press 'o' to unpause");
+	}
+	
+	this.unpause = function(){
+		if(pause){
+			hideMessage();
+			pause = false;
+			requestAnimationFrame(this.draw);
+		}
+	}
+	
 	this.draw = (function(ctx){
 		function d(){
+			if(pause){
+				return;
+			}
+			//console.log("paint", (new Date()).getTime());
 			this.updateGameState();
 			if(gameOver || roundOver){
 				return;
@@ -277,7 +308,7 @@ function Game(canvas){
 				var box1 = item1.getBoundingBox();
 				var box2 = item2.getBoundingBox();
 				var d = distance({x: item1.x, y: item1.y}, {x: item2.x, y: item2.y});
-				if(d < 30){
+				if(d < 100){
 					if(this.isCollision(box1, box2)){
 						item1.destroy();
 						item2.destroy();
@@ -294,49 +325,46 @@ function Game(canvas){
 	
 	function clear(){
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
+		hideMessage();
 	}	
 	
 	this.displayMessage = function(message){
 		clear();
-		ctx.fillStyle = "white";
-		ctx.font = "bold 24px Arial";
-		ctx.fillText(message, (canvas.width / 2) - 100, (canvas.height / 2) - 24);
+		messageDiv.innerHTML = message;
+		var style = messageDiv.style;
+		style.display = "block";
+		style.top = canvas.height/2 - messageDiv.clientHeight/2 + "px";
+		style.left = canvas.width/2 - messageDiv.clientWidth/2 + "px";
+	}
+	
+	function hideMessage(){
+		messageDiv.style.display = "none";
 	}
 	
 	this.displayHighscores = function(highscores, newHighScore){
-		clear();
-		ctx.fillStyle = "white";
-		ctx.font = "bold 24px Arial";
-		var x = (canvas.width / 2) - 50;
-		var y =(canvas.height / 2) - 100;
-		var message = "Game Over!";
-		ctx.fillText(message, x, y);
-		y += 30;
+		var html = "<div>Game Over!</div>";
 		if(newHighScore){
-			ctx.fillStyle = "red";
-			x -= 40;
-			ctx.fillText(" NEW HIGH SCORE!!", x, y);
-			ctx.fillStyle = "white";
-			x -= 20;
-			y += 40;
+			html += "<div class='newHighScore'>NEW HIGH SCORE!!</div>";
 		}
-		else{
-			x -= 60
-		}
+		html += 
+		"<table id='highscoresTable'>" +
+			"<tbody>";
 		for(var i = 0; i < highscores.length; i++){
 			var aScore = highscores[i];
 			if(aScore.score === score){
-				ctx.fillStyle = "green";
-				ctx.font = "bold 22px Arial";
+				html += "<tr class='playerScore'>";
 			}
 			else{
-				ctx.fillStyle = "white";
-				ctx.font = "bold 18px Arial";
+				html += "<tr>";
 			}
-			ctx.fillText(aScore.score, x, y);
-			ctx.fillText(aScore.date, x + 75, y);
-			y += 25;
-		}
+			html += "<td class='score'>"+aScore.score+"</td>";
+			html += "<td class='date'>"+aScore.date+"</td>";
+			html += "</tr>";
+		}		
+		html += 
+			"</tbody>"
+		"</table>";
+		this.displayMessage(html);
 	}
 	
 	this.displayMessage("Press Enter to Start");

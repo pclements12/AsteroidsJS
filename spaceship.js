@@ -77,17 +77,19 @@ function spaceship(canvas){
 		return [{x: minX, y: minY}, {x: maxX, y: minY}, {x: maxX, y: maxY}, {x: minX, y: maxY}];
 	};
 
-	this.rotationBuffer = 0;
+	this.rotationTime = (new Date()).getTime();
 	this.rotationSpeed = 0;
 	this.rotate = function(sign){
-		if(this.rotationBuffer > 0){
-			this.rotationSpeed = 20;
-		}
-		else{
+		var now = (new Date()).getTime();
+		if(now - this.rotationTime > 300){
+			//console.log("fine rotation", now);
 			this.rotationSpeed = 5;
 		}
-		this.rotationSpeed = this.rotationSpeed > TURN_SPEED ? TURN_SPEED : this.rotationSpeed;
-		this.rotationBuffer += 10;
+		else{
+			//console.log("rough / continuous rotation", now);
+			this.rotationSpeed = 20;
+		}
+		this.rotationTime = now;
 		if(sign < 0){
 			this.angle += toRadians(this.rotationSpeed);
 		}
@@ -120,9 +122,6 @@ function spaceship(canvas){
 	this.update = function(){
 		spaceship.prototype.update.call(this);
 		this.paint();
-		this.rotationBuffer -= 1;
-		this.rotationBuffer = this.rotationBuffer < 0 ? 0 : this.rotationBuffer;
-		
 	}
 	
 	this.paint = function(){
@@ -134,6 +133,8 @@ function spaceship(canvas){
 		if(this.boosterCount > 0){
 			this.drawBooster();
 		}
+		//debug collisions:
+		//connectTheDots(ctx, this.getBoundingBox());
 	}
 	
 	this.drawBooster = function(){

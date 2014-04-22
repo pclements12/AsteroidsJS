@@ -1,16 +1,19 @@
 <!doctype html>
 <html>
 	<head>
-		<style>
-			#space{
-				background-color: black;
-				cursor: none;
-			}
-		</style>
-	
+		<title>AsteroidsJS</title>
+		<link rel="stylesheet" type="text/css" href="asteroids.css">
 	</head>
 	<body>
-		<canvas id="space"/>
+		<canvas id="space"></canvas>
+		<div id="info">
+			<span class="label">Score:</span><span id="score">0</span>
+			<span class="label">Lives:</span><span id="lives">0</span>
+			<span class="label">Level:</span><span id="level">0</span>
+		</div>
+		<div id="message"></div>
+		<div id="highscores">
+		</div>
 		<script type="text/javascript" src="spaceobject.js"></script>
 		<script type="text/javascript" src="asteroid.js"></script>
 		<script type="text/javascript" src="spaceship.js"></script>

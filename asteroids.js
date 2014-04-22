@@ -6,7 +6,7 @@ if(!window.requestAnimationFrame){
 	}
 }
 if(!window.localStorage){
-	//(function(){
+	(function(){
 		var store = {};
 		window.localStorage = {
 			getItem : function(key){
@@ -16,7 +16,7 @@ if(!window.localStorage){
 				store[key] = value;
 			}
 		};
-	//})();
+	})();
 }
 ////////////////////////////////////////////////
 //  Utility functions

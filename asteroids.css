@@ -1,0 +1,52 @@
+#space{
+	background-color: black;
+	cursor: url(images/dot.gif), default;
+}
+
+body{
+	font-family: monospace;
+	position: relative;
+}
+
+#info{
+	position: absolute;
+	top: 10px;
+	left: 10px;
+	color: white;
+}
+.label{
+	margin-right: 5px;
+}
+
+#info span{
+	margin-right: 15px;
+}
+
+#message{
+	text-align: center;
+	display:none;
+	font-size: 28px;
+	color: white;
+	position: absolute;
+}
+
+#highscoresTable{
+	font-size: 14px;
+	color: white;
+	width: 100%;
+	margin: auto 0px;
+}
+
+div.newHighScore{
+	color: red;
+	font-size: 1.2em;
+}
+tr.playerScore{
+	color: green;
+}
+td.score{
+	text-align: right;
+}
+td.date{
+	text-align: right;
+}
