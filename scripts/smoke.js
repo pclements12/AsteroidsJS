@@ -40,11 +40,11 @@ function smoke(canvas, x, y, angle){
 		var ctx = this.canvas.getContext("2d");
 		//arc(x, y, radius, startAngle, endAngle, anticlockwise)
 		ctx.beginPath();
-		ctx.strokeStyle = 'rgba(200, 200, 200, '+this.opacity + ')';
+		//ctx.strokeStyle = 'rgba(200, 200, 200, '+this.opacity + ')';
 		ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
 		ctx.fillStyle = 'rgba(200, 200, 200, '+this.opacity + ')';
 		ctx.fill();
-		ctx.stroke();
+		//ctx.stroke();
 		
 		if(this.opacity <= 0){
 			this.destroy();

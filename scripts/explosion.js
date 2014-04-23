@@ -49,6 +49,9 @@ function explosion(canvas, x, y, radius){
 		ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
 		ctx.fillStyle = color + this.opacity + ")";
 		ctx.fill();
+		for(var i = 0; i < 3; i++){
+			this.game.addEffect(new smoke(this.canvas, this.x, this.y, 0));		
+		}
 	}	
 	
 	this.init();
