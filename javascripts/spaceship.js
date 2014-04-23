@@ -9,8 +9,12 @@ function spaceship(canvas){
 	var MAX_SPEED = 25; //max vector magnitude of velocity
 	var TURN_SPEED = 30; //degrees per rotate command	
 	var lastShot = (new Date()).getTime();
-	var shotDelay = 125; //millis
+	var shotDelay = 200; //millis
 	this.boosterCount = 0;
+	
+	this.getShotDelay = function(){
+		return shotDelay;
+	}
 	
 	this.getVelocity = function(){
 		return Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.y * this.velocity.y);
@@ -77,17 +81,19 @@ function spaceship(canvas){
 		return [{x: minX, y: minY}, {x: maxX, y: minY}, {x: maxX, y: maxY}, {x: minX, y: maxY}];
 	};
 
-	this.rotationBuffer = 0;
+	this.rotationTime = (new Date()).getTime();
 	this.rotationSpeed = 0;
 	this.rotate = function(sign){
-		if(this.rotationBuffer > 0){
-			this.rotationSpeed = 20;
-		}
-		else{
+		var now = (new Date()).getTime();
+		if(now - this.rotationTime > 100){
+			//console.log("fine rotation", now);
 			this.rotationSpeed = 5;
 		}
-		this.rotationSpeed = this.rotationSpeed > TURN_SPEED ? TURN_SPEED : this.rotationSpeed;
-		this.rotationBuffer += 10;
+		else{
+			//console.log("rough / continuous rotation", now);
+			this.rotationSpeed = 5;
+		}
+		this.rotationTime = now;
 		if(sign < 0){
 			this.angle += toRadians(this.rotationSpeed);
 		}
@@ -109,7 +115,7 @@ function spaceship(canvas){
 		lastShot = now;
 		var degAngle = toDegrees(this.angle);
 		var p1 = getArcCoordinates(this.x, this.y, degAngle, 20);
-		this.game.addItem(new missile(this.canvas, p1.x, p1.y, this.angle, this.velocity.x, this.velocity.y));
+		this.game.addItem(new missile(this.canvas, p1.x, p1.y, this.angle, this.velocity.x, this.velocity.y, 3));
 	}
 	
 	this.destroy = function(){
@@ -120,9 +126,6 @@ function spaceship(canvas){
 	this.update = function(){
 		spaceship.prototype.update.call(this);
 		this.paint();
-		this.rotationBuffer -= 1;
-		this.rotationBuffer = this.rotationBuffer < 0 ? 0 : this.rotationBuffer;
-		
 	}
 	
 	this.paint = function(){
@@ -134,6 +137,8 @@ function spaceship(canvas){
 		if(this.boosterCount > 0){
 			this.drawBooster();
 		}
+		//debug collisions:
+		//connectTheDots(ctx, this.getBoundingBox());
 	}
 	
 	this.drawBooster = function(){

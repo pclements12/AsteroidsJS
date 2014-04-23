@@ -73,6 +73,9 @@ function asteroid(canvas, x, y, radius){
 		ctx.strokeStyle = 'rgb(255, 255, 255)';
 		ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
 		ctx.stroke();
+		
+		//debug collisions
+		//connectTheDots(ctx, this.getBoundingBox());
 	}		
 	
 	this.init = init;
