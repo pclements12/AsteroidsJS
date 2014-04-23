@@ -1,23 +1,26 @@
 <!doctype html>
 <html>
 	<head>
-		<style>
-			#space{
-				background-color: black;
-				cursor: none;
-			}
-		</style>
-	
+		<title>AsteroidsJS</title>
+		<link rel="stylesheet" type="text/css" href="asteroids.css">
 	</head>
 	<body>
-		<canvas id="space"/>
-		<script type="text/javascript" src="javascripts/spaceobject.js"></script>
-		<script type="text/javascript" src="javascripts/asteroid.js"></script>
-		<script type="text/javascript" src="javascripts/spaceship.js"></script>
-		<script type="text/javascript" src="javascripts/missile.js"></script>
-		<script type="text/javascript" src="javascripts/smoke.js"></script>
-		<script type="text/javascript" src="javascripts/explosion.js"></script>
-		<script type="text/javascript" src="javascripts/game.js"></script>		
-		<script type="text/javascript" src="javascripts/asteroids.js"></script>
+		<canvas id="space"></canvas>
+		<div id="info">
+			<span class="label">Score:</span><span id="score">0</span>
+			<span class="label">Lives:</span><span id="lives">0</span>
+			<span class="label">Level:</span><span id="level">0</span>
+		</div>
+		<div id="message"></div>
+		<div id="highscores">
+		</div>
+		<script type="text/javascript" src="scripts/spaceobject.js"></script>
+		<script type="text/javascript" src="scripts/asteroid.js"></script>
+		<script type="text/javascript" src="scripts/spaceship.js"></script>
+		<script type="text/javascript" src="scripts/missile.js"></script>
+		<script type="text/javascript" src="scripts/smoke.js"></script>
+		<script type="text/javascript" src="scripts/explosion.js"></script>
+		<script type="text/javascript" src="scripts/game.js"></script>		
+		<script type="text/javascript" src="scripts/asteroids.js"></script>
 	</body>
 </html>
