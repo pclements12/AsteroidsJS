@@ -17,11 +17,20 @@ function Game(canvas){
 	var highscoresDiv = document.getElementById("highscores");
 	
 	var keyListener = (function(game){
+		var leftInterval, rightInterval, upInterval, shootInterval;
 		var left = false;
 		var right = false;
 		var up = false;
 		var shoot = false;
 
+		function clearIntervals(){
+			clearInterval(leftInterval);
+			clearInterval(rightInterval);
+			clearInterval(upInterval);
+			clearInterval(shootInterval);
+			leftInterval = rightInterval = upInterval = shootInterval = null;
+		}
+		
 		return function(e){
 			if(e.keyCode === 13 && !game.started){
 				game.start();
@@ -38,6 +47,7 @@ function Game(canvas){
 			}
 			if(!player || player.destroyed || roundOver || gameOver){
 				left = right = up = shoot = false;
+				clearIntervals();
 				return;
 			}
 			//39 right, 37 left, 38 up, 40 down, 32 space;
@@ -45,17 +55,37 @@ function Game(canvas){
 			switch(e.keyCode){
 				//left
 				case 37:
+					if(!left && down){
+						leftInterval = setInterval(function(){
+							player.rotateLeft();
+						}, 10);
+					}
 					left = down;
 					break;
 				//right
 				case 39:
+					if(!right && down){
+						rightInterval = setInterval(function(){
+							player.rotateRight();
+						}, 10);
+					}
 					right = down;
 					break;
 				//up
 				case 38:
+					if(!up && down){
+						upInterval = setInterval(function(){
+							player.accelerate();
+						}, 10);
+					}
 					up = down;
 					break;
 				case 32:
+					if(!shoot && down){
+						shootInterval = setInterval(function(){
+							player.shoot();
+						}, player.getShotDelay());
+					}
 					shoot = down;
 					break;
 				//p
@@ -71,14 +101,30 @@ function Game(canvas){
 			if(left){
 				player.rotateLeft();
 			}
+			else{
+				clearInterval(leftInterval);
+				leftInterval = null;
+			}
 			if(right){
 				player.rotateRight();
 			}	
+			else{
+				clearInterval(rightInterval);
+				rightInterval = null;
+			}
 			if(up){
 				player.accelerate();
 			}
+			else{
+				clearInterval(upInterval);
+				upInterval = null;
+			}
 			if(shoot){
 				player.shoot();
+			}
+			else{
+				clearInterval(shootInterval);
+				shootInterval = null;
 			}
 		}
 	})(this);
@@ -301,6 +347,7 @@ function Game(canvas){
 					item2.destroyed || 
 					(item1 instanceof asteroid && item2 instanceof asteroid) ||
 					(item1 instanceof spaceship && item2 instanceof missile) ||
+					(item1 instanceof missile && item2 instanceof missile) ||
 					(item2 instanceof spaceship && item1 instanceof missile)) {
 					continue;
 				}

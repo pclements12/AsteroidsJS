@@ -1,12 +1,12 @@
 missile.prototype = new SpaceObject();
-function missile(canvas, x, y, angle, srcDx, srcDy){
+function missile(canvas, x, y, angle, srcDx, srcDy, radius){
 	this.canvas = canvas;
 	this.ttl; //Time To Live
 	this.startTime;
 	this.x = x;
 	this.y = y;
 	var velocityMx = 10;
-	this.radius = 3;
+	this.radius = radius ? radius : 3;
 	this.angle = angle;
 	this.velocity = {
 		x : 0,
@@ -46,7 +46,15 @@ function missile(canvas, x, y, angle, srcDx, srcDy){
 		ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
 		ctx.fill();
 		ctx.stroke();
-	}	
+	}
+
+	this.getBoundingBox = function getBoundingBox(){
+		var left = this.x - this.radius;
+		var right = this.x + this.radius;
+		var top = this.y - this.radius;
+		var bottom = this.y + this.radius;
+		return [{x:left, y: top}, {x: right, y: top}, {x: right, y: bottom}, {x: left, y: bottom}];
+	};	
 	
 	this.init();
 	return this;

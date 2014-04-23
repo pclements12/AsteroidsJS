@@ -9,8 +9,12 @@ function spaceship(canvas){
 	var MAX_SPEED = 25; //max vector magnitude of velocity
 	var TURN_SPEED = 30; //degrees per rotate command	
 	var lastShot = (new Date()).getTime();
-	var shotDelay = 125; //millis
+	var shotDelay = 200; //millis
 	this.boosterCount = 0;
+	
+	this.getShotDelay = function(){
+		return shotDelay;
+	}
 	
 	this.getVelocity = function(){
 		return Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.y * this.velocity.y);
@@ -81,13 +85,13 @@ function spaceship(canvas){
 	this.rotationSpeed = 0;
 	this.rotate = function(sign){
 		var now = (new Date()).getTime();
-		if(now - this.rotationTime > 300){
+		if(now - this.rotationTime > 100){
 			//console.log("fine rotation", now);
 			this.rotationSpeed = 5;
 		}
 		else{
 			//console.log("rough / continuous rotation", now);
-			this.rotationSpeed = 20;
+			this.rotationSpeed = 5;
 		}
 		this.rotationTime = now;
 		if(sign < 0){
@@ -111,7 +115,7 @@ function spaceship(canvas){
 		lastShot = now;
 		var degAngle = toDegrees(this.angle);
 		var p1 = getArcCoordinates(this.x, this.y, degAngle, 20);
-		this.game.addItem(new missile(this.canvas, p1.x, p1.y, this.angle, this.velocity.x, this.velocity.y));
+		this.game.addItem(new missile(this.canvas, p1.x, p1.y, this.angle, this.velocity.x, this.velocity.y, 3));
 	}
 	
 	this.destroy = function(){
