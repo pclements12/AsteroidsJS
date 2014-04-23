@@ -91,7 +91,7 @@ function spaceship(canvas){
 		}
 		else{
 			//console.log("rough / continuous rotation", now);
-			this.rotationSpeed = 5;
+			this.rotationSpeed = 10;
 		}
 		this.rotationTime = now;
 		if(sign < 0){

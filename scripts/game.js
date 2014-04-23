@@ -58,7 +58,7 @@ function Game(canvas){
 					if(!left && down){
 						leftInterval = setInterval(function(){
 							player.rotateLeft();
-						}, 10);
+						}, 30);
 					}
 					left = down;
 					break;
@@ -67,7 +67,7 @@ function Game(canvas){
 					if(!right && down){
 						rightInterval = setInterval(function(){
 							player.rotateRight();
-						}, 10);
+						}, 30);
 					}
 					right = down;
 					break;
@@ -76,7 +76,7 @@ function Game(canvas){
 					if(!up && down){
 						upInterval = setInterval(function(){
 							player.accelerate();
-						}, 10);
+						}, 50);
 					}
 					up = down;
 					break;
