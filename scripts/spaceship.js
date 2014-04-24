@@ -6,7 +6,7 @@ function spaceship(canvas){
 	this.angle = Math.PI * 1.5; //270 Degrees, IE, straight up, or -1, 0 on unit circle
 	
 	var fuzz = 1e-4; //handle 0-ish floats
-	var MAX_SPEED = 25; //max vector magnitude of velocity
+	var MAX_SPEED = 17; //max vector magnitude of velocity
 	var TURN_SPEED = 30; //degrees per rotate command	
 	var lastShot = (new Date()).getTime();
 	var shotDelay = 200; //millis
