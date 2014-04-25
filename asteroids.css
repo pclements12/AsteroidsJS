@@ -5,6 +5,9 @@
 
 body{
 	font-family: monospace;
+}
+
+#container{
 	position: relative;
 }
 
@@ -14,12 +17,33 @@ body{
 	left: 10px;
 	color: white;
 }
+
 .label{
 	margin-right: 5px;
 }
 
 #info span{
 	margin-right: 15px;
+}
+
+#instruction{
+	position:absolute;
+	bottom: 5px;
+	color: yellow;
+}
+
+#details{
+	position:absolute;
+	left: 10px;
+	bottom: 5px;
+	color: white;
+}
+
+#details span{
+	margin-right: 15px;
+}
+span.warning{
+	color: red;
 }
 
 #message{

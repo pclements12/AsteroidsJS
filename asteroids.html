@@ -5,14 +5,19 @@
 		<link rel="stylesheet" type="text/css" href="asteroids.css">
 	</head>
 	<body>
-		<canvas id="space"></canvas>
-		<div id="info">
-			<span class="label">Score:</span><span id="score">0</span>
-			<span class="label">Lives:</span><span id="lives">0</span>
-			<span class="label">Level:</span><span id="level">0</span>
-		</div>
-		<div id="message"></div>
-		<div id="highscores">
+		<div id='container'>
+			<canvas id="space"></canvas>
+			<div id="info">
+				<span class="label">Score:</span><span id="score">0</span>
+				<span class="label">Lives:</span><span id="lives">0</span>
+				<span class="label">Level:</span><span id="level">0</span>
+			</div>
+			<div id="message"></div>
+			<div id="details">
+				<span class="label">frame rate:</span><span id="frameRate"></span><span> fps</span>
+				<span id="powerUp"></span>
+			</div>
+			<span id="instruction"></span>
 		</div>
 		<script type="text/javascript" src="scripts/spaceobject.js"></script>
 		<script type="text/javascript" src="scripts/asteroid.js"></script>
@@ -20,7 +25,10 @@
 		<script type="text/javascript" src="scripts/missile.js"></script>
 		<script type="text/javascript" src="scripts/smoke.js"></script>
 		<script type="text/javascript" src="scripts/explosion.js"></script>
-		<script type="text/javascript" src="scripts/game.js"></script>		
+		<script type="text/javascript" src="scripts/power.js"></script>
+		<script type="text/javascript" src="scripts/powerup.js"></script>
+		<script type="text/javascript" src="scripts/game.js"></script>
 		<script type="text/javascript" src="scripts/asteroids.js"></script>
+		
 	</body>
 </html>

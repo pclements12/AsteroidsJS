@@ -60,6 +60,13 @@ function asteroid(canvas, x, y, radius){
 		this.destroyed = true;
 	}
 	
+	this.canCollideWith = function(item){
+		var can =  
+			(item instanceof spaceship ||
+			item instanceof missile);
+		return can;
+	}
+	
 	this.generateChildren = function(count){
 		for(var i = 0; i < count; i++){
 			this.game.addItem(new asteroid(this.canvas, this.x, this.y, this.radius / 2));

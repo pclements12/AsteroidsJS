@@ -29,6 +29,10 @@ function SpaceObject(canvas, game){
 		this.destroyed = true;
 	}
 	
+	this.canCollideWith = function(otherItem){
+		return false;
+	}
+	
 	this.getBoundingBox = function getBoundingBox(){
 		var left = this.x - 10;
 		var right = this.x + 10;
@@ -36,6 +40,11 @@ function SpaceObject(canvas, game){
 		var bottom = this.y + 10;
 		return [{x:left, y: top}, {x: right, y: top}, {x: right, y: bottom}, {x: left, y: bottom}];
 	};
+	
+	this._update = function(){
+		this.update();
+		this.game.getPowerUp(this, "update");
+	}
 	
 	function update(){
 		this.x += this.velocity.x;
@@ -50,8 +59,6 @@ function SpaceObject(canvas, game){
 		
 		this.x = this.x % this.canvas.width;
 		this.y = this.y % this.canvas.height;
-		
-		this.paint();
 	}
 	
 	function paint(){

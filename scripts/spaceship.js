@@ -7,7 +7,8 @@ function spaceship(canvas){
 	
 	var fuzz = 1e-4; //handle 0-ish floats
 	var MAX_SPEED = 25; //max vector magnitude of velocity
-	var TURN_SPEED = 30; //degrees per rotate command	
+	var FINE_TURN_SPEED = 5; //degrees per turn command
+	var COARSE_TURN_SPEED = 10; //degrees per turn command
 	var lastShot = (new Date()).getTime();
 	var shotDelay = 200; //millis
 	this.boosterCount = 0;
@@ -22,6 +23,7 @@ function spaceship(canvas){
 	
 	this.smokeTrail = function(){
 		if(this.boosterCount == 0){
+			//show the booster + smoke for 20 animation loops
 			this.boosterCount = 20;
 		}
 	}
@@ -87,11 +89,11 @@ function spaceship(canvas){
 		var now = (new Date()).getTime();
 		if(now - this.rotationTime > 100){
 			//console.log("fine rotation", now);
-			this.rotationSpeed = 5;
+			this.rotationSpeed = FINE_TURN_SPEED;
 		}
 		else{
 			//console.log("rough / continuous rotation", now);
-			this.rotationSpeed = 10;
+			this.rotationSpeed = COARSE_TURN_SPEED;
 		}
 		this.rotationTime = now;
 		if(sign < 0){
@@ -115,17 +117,27 @@ function spaceship(canvas){
 		lastShot = now;
 		var degAngle = toDegrees(this.angle);
 		var p1 = getArcCoordinates(this.x, this.y, degAngle, 20);
-		this.game.addItem(new missile(this.canvas, p1.x, p1.y, this.angle, this.velocity.x, this.velocity.y, 3));
+		if(!game.getPowerUp(this, "shoot")){
+			this.game.addItem(new missile(this.canvas, p1.x, p1.y, this.angle, this.velocity.x, this.velocity.y, 3));
+		}		
+	}	
+	
+	this.canCollideWith = function(item){
+		var can =  
+			(item instanceof asteroid ||
+			item instanceof powerup);
+		return can;
 	}
 	
 	this.destroy = function(){
 		this.lives--;
+		this.boosterCount = 0;
 		this.destroyed = true;
+		this.keyInput.clearInputs();
 	}
 	
 	this.update = function(){
 		spaceship.prototype.update.call(this);
-		this.paint();
 	}
 	
 	this.paint = function(){
@@ -177,6 +189,7 @@ function spaceship(canvas){
 	this.reset = function(){
 		this.destroyed = false;
 		this.init();
+		this.keyInput.clearInputs();
 	}
 	
 	this.init = function(){
@@ -188,6 +201,109 @@ function spaceship(canvas){
 	
 	this.lives = 3;
 	this.init();
+
+	this.keyInput = new (function(player){
+		var leftInterval, rightInterval, upInterval, shootInterval;
+		var left = false;
+		var right = false;
+		var up = false;
+		var shoot = false;
+
+		this.clearInputs = function(){
+			left = right = up = shoot = false;
+			clearInterval(leftInterval);
+			clearInterval(rightInterval);
+			clearInterval(upInterval);
+			clearInterval(shootInterval);
+			leftInterval = rightInterval = upInterval = shootInterval = null;
+		}
+		
+		this.isAccel = function(){
+			return up;
+		}
+		
+		this.isRotate = function(){
+			return left || right;
+		}
+		
+		this.isShoot = function(){
+			return shoot;
+		}
+		
+		this.handleInput = function(e){
+			//39 right, 37 left, 38 up, 40 down, 32 space;
+			var down = e.type === "keydown";
+			switch(e.keyCode){
+				//left
+				case 37:
+					if(!left && down){
+						leftInterval = setInterval(function(){
+							player.rotateLeft();
+						}, 30);
+					}
+					left = down;
+					break;
+				//right
+				case 39:
+					if(!right && down){
+						rightInterval = setInterval(function(){
+							player.rotateRight();
+						}, 30);
+					}
+					right = down;
+					break;
+				//up
+				case 38:
+					if(!up && down){
+						upInterval = setInterval(function(){
+							player.accelerate();
+						}, 50);
+					}
+					up = down;
+					break;
+				case 32:
+					if(!shoot && down){
+						shootInterval = setInterval(function(){
+							player.shoot();
+						}, player.getShotDelay());
+					}
+					shoot = down;
+					break;
+			}
+			if(left){
+				player.rotateLeft();
+			}
+			else{
+				clearInterval(leftInterval);
+				leftInterval = null;
+			}
+			if(right){
+				player.rotateRight();
+			}	
+			else{
+				clearInterval(rightInterval);
+				rightInterval = null;
+			}
+			if(up){
+				player.accelerate();
+			}
+			else{
+				clearInterval(upInterval);
+				upInterval = null;
+			}
+			if(shoot){
+				player.shoot();
+			}
+			else{
+				clearInterval(shootInterval);
+				shootInterval = null;
+			}
+		};
+	})(this);
+	
+	this.handleKeyInput = function(e){
+		this.keyInput.handleInput(e);
+	};
 	
 	return this;
 }

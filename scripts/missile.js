@@ -34,6 +34,7 @@ function missile(canvas, x, y, angle, srcDx, srcDy, radius){
 			this.destroy();
 		}
 		
+		game.getPowerUp(this, "update");
 		missile.prototype.update.call(this);
 	}
 	
@@ -46,6 +47,11 @@ function missile(canvas, x, y, angle, srcDx, srcDy, radius){
 		ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
 		ctx.fill();
 		ctx.stroke();
+	}
+	
+	this.canCollideWith = function(item){
+		var can = (item instanceof asteroid);
+		return can;
 	}
 
 	this.getBoundingBox = function getBoundingBox(){
