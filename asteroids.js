@@ -29,6 +29,10 @@ function SpaceObject(canvas, game){
 		this.destroyed = true;
 	}
 	
+	this.canCollideWith = function(otherItem){
+		return false;
+	}
+	
 	this.getBoundingBox = function getBoundingBox(){
 		var left = this.x - 10;
 		var right = this.x + 10;
@@ -36,6 +40,11 @@ function SpaceObject(canvas, game){
 		var bottom = this.y + 10;
 		return [{x:left, y: top}, {x: right, y: top}, {x: right, y: bottom}, {x: left, y: bottom}];
 	};
+	
+	this._update = function(){
+		this.update();
+		this.game.getPowerUp(this, "update");
+	}
 	
 	function update(){
 		this.x += this.velocity.x;
@@ -50,8 +59,6 @@ function SpaceObject(canvas, game){
 		
 		this.x = this.x % this.canvas.width;
 		this.y = this.y % this.canvas.height;
-		
-		this.paint();
 	}
 	
 	function paint(){
@@ -130,6 +137,13 @@ function asteroid(canvas, x, y, radius){
 			this.generateChildren(2);
 		}
 		this.destroyed = true;
+	}
+	
+	this.canCollideWith = function(item){
+		var can =  
+			(item instanceof spaceship ||
+			item instanceof missile);
+		return can;
 	}
 	
 	this.generateChildren = function(count){
@@ -272,6 +286,273 @@ function smoke(canvas, x, y, angle){
 	return this;
 }
 
+var Powers = {};
+
+Powers.MultiShot = new power({
+	rarity: 1,
+	label: "Multi Shot!",
+	phase: "shoot",
+	objectType: spaceship,
+	action: function(item){
+		var tip = item.getShipPoints()[0];
+		for(var i = 0; i < 5; i++){
+			var angle = item.angle + toRadians(randomInt(-15, 15));
+			if(angle < 0){
+				angle = (Math.PI * 2) + angle;
+			}
+			angle = angle % toRadians(360);
+			game.addItem(new missile(item.canvas, tip.x, tip.y, angle, item.velocity.x, item.velocity.y, 3));
+		}
+	}
+});
+
+Powers.BigShot = new power({
+	rarity: 1,
+	label: "BIG Shot!",
+	phase: "update",
+	objectType: missile,
+	action : function(item){
+		item.radius = 20;		
+	}	
+});
+
+Powers.StickyShip = new power({
+	rarity: 2,
+	label: "Sticky Ship!",
+	phase: "update",
+	objectType: spaceship,
+	action: function(item){
+		if(!item.keyInput.isAccel()){
+			item.velocity.x = 0;
+			item.velocity.y = 0;
+		}
+	},
+	deactivate: function(item){
+		item.velocity.x = 0;
+		item.velocity.y = 0;
+	}
+});
+
+Powers.OneUp = new power({
+	rarity: 3,
+	label: "1UP!",
+	objectType: spaceship,
+	activate : function(item){
+		item.lives++;
+	}
+});
+
+Powers.TimeFreeze = new power({
+	rarity: 2,
+	label: "Freeze!",
+	phase: "update",
+	objectType: asteroid,
+    asteroids: [],
+	activate : function(item){
+		this.asteroids.push(item);
+		item.velocity = {x : 0, y: 0};
+	},
+	action : function(item){
+		if(contains(this.asteroids, item) < 0){
+			this.activate(item);
+		}
+	},
+	deactivate : function(item){
+		var maxV = 20 / item.radius;
+		item.velocity.x = randomFloat(-maxV, maxV);
+		item.velocity.y = randomFloat(-maxV, maxV);
+	}
+});
+
+
+function power(args){
+/*
+	
+	args : {
+		label, {String}, powerup label to be displayed
+		phase, {String} 'update' or 'shoot'. if neither, action will never fire, but activate and deactivate will
+		objectType,{Object} constructor of objects that are affected by this powerup
+		activate, {Function} called once on each item affected at powerup activation
+		deactivate, {Function} called once on each item affected at powerup deactivation
+		action {Function} called on each item affected whenever the "phase" occurs for that item
+	}
+*/
+	var startTime;
+	var duration = 15 * 1000;
+	if(!args.objectType){
+		args.objectType = null;
+	}
+	if(!args.phase){
+		args.phase = "";
+	}
+	this.rarity = args.rarity;
+	if(!this.rarity){
+		this.rarity = 1;
+	}
+	var labelSpan = null;
+	var timerSpan = null;
+	var timerInterval = null;
+	this.label = args.label;
+	
+	this.init = function(span){
+		startTime = (new Date()).getTime();
+		labelSpan = span;
+		labelSpan.innerHTML = args.label;
+		timerSpan = document.createElement("span");
+		labelSpan.appendChild(timerSpan);
+		timerInterval = setInterval(function(){
+			var time = (Math.floor(duration - ((new Date()).getTime() - startTime)) / 1000).toFixed(0);
+			if(time < 5){
+				timerSpan.className = "warning";
+			}
+			timerSpan.innerHTML = time;			
+		}, 1000);
+		if(args.init){
+			args.init();
+		}
+	}
+
+	this.expired = function(){
+		var now = (new Date()).getTime();
+		return now - startTime > duration;
+	}
+	
+	this.affectsItem = function(item){
+		var affects = (item instanceof args.objectType);
+		return affects;
+	}
+	
+	this.affectsPhase = function(phase){
+		return args.phase.toLowerCase() == phase.toLowerCase();
+	}
+	
+	this.getPhase = function(){
+		return args.phase;
+	}
+	
+	this.getLabel = function(){
+		return labelSpan;
+	}
+	
+	this.activate = function(item){
+		if(args.activate && this.affectsItem(item)){
+			args.activate(item);
+			return true;
+		
+		}
+		return false;
+	}
+	
+	this.deactivate = function(item){		
+		if(args.deactivate && this.affectsItem(item)){
+			args.deactivate(item);
+			return true;
+		}
+		return false;
+	}
+	
+	this.action = function(item){
+		if(args.action && this.affectsItem(item)){
+			args.action(item);
+			return true;
+		}		
+		return false;
+	}	
+	
+	this.terminate = function(){
+		if(timerInterval){
+			clearInterval(timerInterval);
+			timerInterval = null;
+		}
+		labelSpan.remove();
+		if(args.terminate){
+			args.terminate();
+		}
+	}
+};
+powerup.prototype = new SpaceObject();
+function powerup(canvas, x, y, power){
+/////////////////////////////////////
+/*	
+	 Power ups have two phases:
+	1. space object (awaiting pickup) -> draws and updates
+	2. as a powerup (after being picked up) -> interacts with object behaviors through hooks based on objectType and phase
+*/
+////////////////////////////////////
+	this.canvas = canvas;
+	this.x = x;
+	this.y = y;
+	this.lifetime = 12 * 1000; // 20 seconds to pick up the item
+	this.power = power;
+	
+	this.radius = 10;
+	this.velocity = {
+		x : 0,
+		y: 0
+	};
+	
+	this.init = function(){
+		this.createTime = (new Date()).getTime();
+		this.opacity = 1.0;
+		this.color = [
+			255, 0 , 0
+			// randomInt(0, 255),
+			// randomInt(0, 255),
+			// randomInt(0, 255)
+		]
+	}
+	
+	this.getBoundingBox = function getBoundingBox(){
+		var left = this.x - this.radius;
+		var right = this.x + this.radius;
+		var top = this.y - this.radius;
+		var bottom = this.y + this.radius;
+		return [{x:left, y: top}, {x: right, y: top}, {x: right, y: bottom}, {x: left, y: bottom}];
+	};
+
+	this.expired = function(){
+		return this.power.expired();
+	}
+	
+	this.update = function(){
+		var now = (new Date()).getTime();
+		var timeLived = now - this.createTime;
+		if(timeLived > this.lifetime){
+			this.destroy(false);
+		}		
+		else if(this.lifetime - timeLived < this.lifetime/2){
+			this.opacity = (this.lifetime - timeLived) / (this.lifetime);
+		}
+		powerup.prototype.update.call(this);
+	}
+	
+	this.pickup = function(){
+		this.power.init();
+	}
+	
+	this.canCollideWith = function(item){
+		var can =  (item instanceof spaceship);
+		return can;
+	}
+	
+	this.paint = function(){
+		var ctx = this.canvas.getContext("2d");
+		//arc(x, y, radius, startAngle, endAngle, anticlockwise)
+		ctx.beginPath();
+		ctx.fillStyle = "rgba(" + this.color.join(",") + ", " + this.opacity + ")";			
+		ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+		ctx.fill();
+		ctx.font = "10px monospace";
+		ctx.fillStyle = "#fff";
+		ctx.fillText(this.power.label,this.x, this.y);
+		ctx.strokeStyle = "rgba(" + this.color.join(",") + ", " + this.opacity + ")";	
+		ctx.stroke();
+	}	
+	
+	this.init();
+	return this;
+}
+
 missile.prototype = new SpaceObject();
 function missile(canvas, x, y, angle, srcDx, srcDy, radius){
 	this.canvas = canvas;
@@ -308,6 +589,7 @@ function missile(canvas, x, y, angle, srcDx, srcDy, radius){
 			this.destroy();
 		}
 		
+		game.getPowerUp(this, "update");
 		missile.prototype.update.call(this);
 	}
 	
@@ -320,6 +602,11 @@ function missile(canvas, x, y, angle, srcDx, srcDy, radius){
 		ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
 		ctx.fill();
 		ctx.stroke();
+	}
+	
+	this.canCollideWith = function(item){
+		var can = (item instanceof asteroid);
+		return can;
 	}
 
 	this.getBoundingBox = function getBoundingBox(){
@@ -343,7 +630,8 @@ function spaceship(canvas){
 	
 	var fuzz = 1e-4; //handle 0-ish floats
 	var MAX_SPEED = 25; //max vector magnitude of velocity
-	var TURN_SPEED = 30; //degrees per rotate command	
+	var FINE_TURN_SPEED = 5; //degrees per turn command
+	var COARSE_TURN_SPEED = 10; //degrees per turn command
 	var lastShot = (new Date()).getTime();
 	var shotDelay = 200; //millis
 	this.boosterCount = 0;
@@ -358,6 +646,7 @@ function spaceship(canvas){
 	
 	this.smokeTrail = function(){
 		if(this.boosterCount == 0){
+			//show the booster + smoke for 20 animation loops
 			this.boosterCount = 20;
 		}
 	}
@@ -423,11 +712,11 @@ function spaceship(canvas){
 		var now = (new Date()).getTime();
 		if(now - this.rotationTime > 100){
 			//console.log("fine rotation", now);
-			this.rotationSpeed = 5;
+			this.rotationSpeed = FINE_TURN_SPEED;
 		}
 		else{
 			//console.log("rough / continuous rotation", now);
-			this.rotationSpeed = 10;
+			this.rotationSpeed = COARSE_TURN_SPEED;
 		}
 		this.rotationTime = now;
 		if(sign < 0){
@@ -451,17 +740,27 @@ function spaceship(canvas){
 		lastShot = now;
 		var degAngle = toDegrees(this.angle);
 		var p1 = getArcCoordinates(this.x, this.y, degAngle, 20);
-		this.game.addItem(new missile(this.canvas, p1.x, p1.y, this.angle, this.velocity.x, this.velocity.y, 3));
+		if(!game.getPowerUp(this, "shoot")){
+			this.game.addItem(new missile(this.canvas, p1.x, p1.y, this.angle, this.velocity.x, this.velocity.y, 3));
+		}		
+	}	
+	
+	this.canCollideWith = function(item){
+		var can =  
+			(item instanceof asteroid ||
+			item instanceof powerup);
+		return can;
 	}
 	
 	this.destroy = function(){
 		this.lives--;
+		this.boosterCount = 0;
 		this.destroyed = true;
+		this.keyInput.clearInputs();
 	}
 	
 	this.update = function(){
 		spaceship.prototype.update.call(this);
-		this.paint();
 	}
 	
 	this.paint = function(){
@@ -513,6 +812,7 @@ function spaceship(canvas){
 	this.reset = function(){
 		this.destroyed = false;
 		this.init();
+		this.keyInput.clearInputs();
 	}
 	
 	this.init = function(){
@@ -524,35 +824,16 @@ function spaceship(canvas){
 	
 	this.lives = 3;
 	this.init();
-	
-	return this;
-}
 
-function Game(canvas){
-	var level = 0;
-	var roundOver = true;
-	var gameOver = false;
-	var player;
-	var items = [];
-	var effects = [];
-	var asteroids = [];
-	var score;
-	
-	var scoreLabel = document.getElementById("score");
-	var livesLabel = document.getElementById("lives");
-	var levelLabel = document.getElementById("level");
-	
-	var messageDiv = document.getElementById("message");
-	var highscoresDiv = document.getElementById("highscores");
-	
-	var keyListener = (function(game){
+	this.keyInput = new (function(player){
 		var leftInterval, rightInterval, upInterval, shootInterval;
 		var left = false;
 		var right = false;
 		var up = false;
 		var shoot = false;
 
-		function clearIntervals(){
+		this.clearInputs = function(){
+			left = right = up = shoot = false;
 			clearInterval(leftInterval);
 			clearInterval(rightInterval);
 			clearInterval(upInterval);
@@ -560,25 +841,19 @@ function Game(canvas){
 			leftInterval = rightInterval = upInterval = shootInterval = null;
 		}
 		
-		return function(e){
-			if(e.keyCode === 13 && !game.started){
-				game.start();
-			}
-			else if(e.keyCode === 13 && game.started && roundOver){
-				game.beginRound();
-			}
-			else if(e.keyCode === 13 && player.destroyed){
-				player.reset();
-				game.addItem(player);
-			}
-			else if(gameOver && e.keyCode === 13){
-				game.reset();
-			}
-			if(!player || player.destroyed || roundOver || gameOver){
-				left = right = up = shoot = false;
-				clearIntervals();
-				return;
-			}
+		this.isAccel = function(){
+			return up;
+		}
+		
+		this.isRotate = function(){
+			return left || right;
+		}
+		
+		this.isShoot = function(){
+			return shoot;
+		}
+		
+		this.handleInput = function(e){
 			//39 right, 37 left, 38 up, 40 down, 32 space;
 			var down = e.type === "keydown";
 			switch(e.keyCode){
@@ -609,7 +884,7 @@ function Game(canvas){
 					}
 					up = down;
 					break;
-				case 32:
+			    case 32:
 					if(!shoot && down){
 						shootInterval = setInterval(function(){
 							player.shoot();
@@ -617,16 +892,7 @@ function Game(canvas){
 					}
 					shoot = down;
 					break;
-				//p
-				case 80:
-					game.pause();
-					break;
-				//o
-				case 79:
-					game.unpause();
-					break;
-			};
-			//console.log("keydown, left", left, "right", right, "up", up, "shoot", shoot, (new Date()).getTime());
+			}
 			if(left){
 				player.rotateLeft();
 			}
@@ -655,6 +921,90 @@ function Game(canvas){
 				clearInterval(shootInterval);
 				shootInterval = null;
 			}
+		};
+	})(this);
+	
+	this.handleKeyInput = function(e){
+		this.keyInput.handleInput(e);
+	};
+	
+	return this;
+}
+function Game(canvas){
+	var level = 0;
+	var roundOver = true;
+	var gameOver = false;
+	var player;
+	var items = [];
+	var effects = [];
+	var wait = false;
+	
+	var powers = [Powers.StickyShip, Powers.MultiShot, Powers.BigShot, Powers.OneUp, Powers.TimeFreeze];
+	
+	var powerUps = [];
+	var asteroids = [];
+	var score;
+	
+	var scoreLabel = document.getElementById("score");
+	var livesLabel = document.getElementById("lives");
+	var levelLabel = document.getElementById("level");
+	
+	var messageDiv = document.getElementById("message");
+	var highscoresDiv = document.getElementById("highscores");
+	var powerUpSpan = document.getElementById("powerUp");
+	var instructionSpan = document.getElementById("instruction");
+	instructionSpan.style.left = canvas.width / 2 - 100 + "px";
+	
+	var keyListener = (function(game){
+		var leftInterval, rightInterval, upInterval, shootInterval;
+		var left = false;
+		var right = false;
+		var up = false;
+		var shoot = false;
+
+		function clearIntervals(){
+			clearInterval(leftInterval);
+			clearInterval(rightInterval);
+			clearInterval(upInterval);
+			clearInterval(shootInterval);
+			leftInterval = rightInterval = upInterval = shootInterval = null;
+		}
+		
+		return function (e) {
+		    //prevent navigation keys from doing their default behaviors
+		    if ((!game.waiting() && e.keyCode == 32) || (e.keyCode >= 37 && e.keyCode <= 40)) {
+		        e.preventDefault();
+		    }
+		    if (!game.waiting()) {
+		        if (e.keyCode === 13 && !game.started) {
+		            game.start();
+		        }
+		        else if (e.keyCode === 13 && game.started && roundOver) {
+		            game.beginRound();
+		        }
+		        else if (e.keyCode === 13 && player.destroyed) {
+		            player.reset();
+		            game.addItem(player);
+		        }
+		        else if (gameOver && e.keyCode === 13) {
+		            game.reset();
+		        }
+		    }
+			if(!player || player.destroyed || roundOver || gameOver){
+				clearIntervals();
+				return;
+			}
+			switch(e.keyCode){
+				//p
+				case 80:
+					game.pause();
+					return;
+				//o
+				case 79:
+					game.unpause();
+					return;
+			};
+			player.handleKeyInput(e);
 		}
 	})(this);
 	
@@ -676,56 +1026,82 @@ function Game(canvas){
 		effects.push(spaceObject);
 	}
 	
+	this.addPowerUp = function(powerup){
+		powerup.setGame(this);
+		powerUps.push(powerup);
+		powerup.power.init(document.createElement("span"));
+		activatePower(powerup.power);
+		powerUpSpan.appendChild(powerup.power.getLabel());
+	}
+	
+	function activatePower(power){
+		for(var i = 0; i < items.length; i++){
+			power.activate(items[i]);
+		}
+	}
+	
+	function deactivatePower(power){
+		for(var i = 0; i < items.length; i++){
+			power.deactivate(items[i]);
+		}
+		power.terminate();
+	}
+	
+	this.checkPowerUpExpirations = function(){
+		for(var i = 0; i < powerUps.length; i++){
+			if(powerUps[i].expired()){
+				deactivatePower(powerUps[i].power);
+				powerUps.splice(i, 1);
+				i--;
+			}
+		}
+	}
+	
+	this.getPowerUp = function(item, phase){
+		var poweredUp = false;
+		for(var i = 0; i < powerUps.length; i++){
+			if(powerUps[i].power.affectsPhase(phase)){
+				poweredUp = powerUps[i].power.action(item) || poweredUp;
+			}
+		}
+		return poweredUp;
+	}
+	
+	this.removePowerUps = function(){
+		//remove all powerups at the end of a round
+		for(var i = 0; i < powerUps.length; i++){
+			deactivatePower(powerUps[i].power);
+		}
+		powerUps = [];
+		powerUpSpan.innerHTML = "";
+	}
+	
 	this.drawStatus = function(){
 		scoreLabel.innerHTML = score;
 		livesLabel.innerHTML = player.lives;
 		levelLabel.innerHTML = level;	
 	}
 	
-	function pad(array){
-		for(var i = 0; i < array.length; i++){
-			var str = String(array[i]);
-			while(str.length < 2){
-				str = "0" + str;
-			}
-			array[i] = str;
-		}
-	}
-	
 	function dateTimeString (date){
 		var d = [date.getMonth() + 1, date.getDate(), date.getFullYear()].join("/");
-		var t = [date.getHours() > 12 ? date.getHours() % 12 : date.getHours(), date.getMinutes(), date.getSeconds()];
-		pad(t);
-		t = t.join(":");
+		var t = date.toLocaleTimeString();
 		return d + " " + t;
 	};
 	
 	this.updateGameState = function(){
 		if(player.destroyed){
-			if(player.lives <= 0){
-				gameOver = true;
-				this.started = false;
-				var highscores = JSON.parse(window.localStorage.getItem("asteroidsjs.highscores"));
-				if(!highscores){
-					highscores = [];
-				}
-				function compare(score1, score2){
-					if(score1.score === score2.score){
-						return 0;
-					}
-					return score2.score - score1.score;
-				}
-				
-				highscores.push({score: score, date: dateTimeString(new Date())});
-				highscores.sort(compare);
-				highscores.splice(10); //only keep the top 10!
-				var newHighScore = highscores[0].score === score;
-				window.localStorage.setItem("asteroidsjs.highscores", JSON.stringify(highscores));
-				this.displayHighscores(highscores, newHighScore);			
+		    if (player.lives <= 0) {
+				this.handleGameOver();
+			}
+			else{
+				this.setInstruction("Enter to respawn");
 			}
 		}
 		else if(asteroids.length === 0){
 			this.endRound();
+		}
+		else{
+			this.setInstruction("");
 		}
 	}
 	
@@ -742,9 +1118,30 @@ function Game(canvas){
 			requestAnimationFrame(this.draw);
 		}
 	}
+
+	this.waiting = function () {
+	    return wait;
+	}
+
+	this.wait = function () {
+	    wait = true;
+	}
+
+	this.resume = function () {
+	    wait = false;
+	}
+	
+	// diagnostic variables (perf measurement)
+	var frameCount = 0;
+	var frameRateSpan = document.getElementById("frameRate");
+	setInterval(function(){
+		frameRateSpan.innerHTML = frameCount;
+		frameCount = 0;
+	}, 1000);
 	
 	this.draw = (function(ctx){
 		function d(){
+			frameCount++;
 			if(pause){
 				return;
 			}
@@ -754,6 +1151,7 @@ function Game(canvas){
 				return;
 			}
 			clear();
+			this.checkPowerUpExpirations();
 			this.checkForCollisions();
 			for(var i = 0; i < items.length; i++){
 				if(items[i].destroyed){
@@ -761,6 +1159,7 @@ function Game(canvas){
 						score += items[i].points;
 					}
 					if(items[i] instanceof asteroid){
+						this.checkForPowerUps(items[i].x, items[i].y, items[i].radius);
 						var index = contains(asteroids, items[i]);
 						if(index >= 0){
 							asteroids.splice(index, 1);
@@ -770,7 +1169,8 @@ function Game(canvas){
 					i--;
 					continue;
 				}
-				items[i].update();
+				items[i]._update();
+				items[i].paint();
 			}
 			for(var i = 0; i < effects.length; i++){
 				if(effects[i].destroyed){
@@ -778,24 +1178,51 @@ function Game(canvas){
 				}
 				else{
 					effects[i].update();
+					effects[i].paint();
 				}
 			}
 			this.drawStatus();
 			requestAnimationFrame(this.draw);
 		}
 		return function(){
-			d.call(ctx);
+			d.apply(ctx, arguments);
 		}
 	})(this)
 	
-	function contains(array, obj){
-		for(var i = 0; i < array.length; i++){
-			if(array[i] === obj){
-				return i;
+	this.checkForPowerUps = function(x, y){
+		//decide if we are going to spawn a powerup
+		if(randomInt(0, 50) < 3){
+			//decide which powerup to create based on rarity
+			
+			var power = this.getNextPowerUp();
+			game.addItem(new powerup(canvas, x, y, power));			
+		}
+	}
+	
+	this.getNextPowerUp = (function(){		
+		var bag = [[],[],[]];
+		for(var i = 0; i < powers.length; i++){
+			var power = powers[i];
+			bag[power.rarity - 1].push(power);
+		}
+		//rarities can be 1-3, higher is more rare
+		//p(1) = 60%, p(2)=30%, p(3) = 10%
+		return function(){
+			var pick = randomInt(0, 10);
+			if(pick === 0 && bag[2].length > 0){
+				return bag[2][randomInt(0, bag[2].length)];
+			}
+			else if(pick > 0 && pick < 4 && bag[1].length > 0){
+				return bag[1][randomInt(0, bag[1].length)];
+			}
+			else if(bag[0].length > 0){
+				return bag[0][randomInt(0, bag[0].length)];
+			}
+			else if(powers.length > 0){
+			    return powers[randomInt(0, powers.length)];
 			}
 		}
-		return -1;
-	}
+	})()
 	
 	this.started = false;
 	this.start = function(){
@@ -812,6 +1239,7 @@ function Game(canvas){
 		items = [];
 		asteroids = [];
 		effects = [];
+		this.removePowerUps();
 		this.start();
 	}
 	
@@ -822,7 +1250,7 @@ function Game(canvas){
 		items = [];
 		asteroids = [];
 		effects = [];
-		
+		this.removePowerUps();
 		var astrCount = 6 + level;
 		
 		for(var i = 0; i < astrCount; i++){
@@ -832,15 +1260,46 @@ function Game(canvas){
 		player.reset();
 		this.addItem(player);
 		roundOver = false;
-		
 		requestAnimationFrame(this.draw);
-	}	
+	}
 	
 	this.endRound = function(){
 		level++;
 		roundOver = true;
 		score += 1000 * level;
+		this.removePowerUps();
 		this.displayMessage("Round Complete!");
+	}
+	
+	this.handleGameOver = function(){
+		this.removePowerUps();
+		gameOver = true;
+		this.started = false;
+		this.displayMessage("<div>Game Over!</div>");
+		this.wait();
+		var self = this;
+		self.getHighScores().done(function (highscores) {
+			highscores.splice(20);
+			self.postNewScore().done(function (score) {
+				var id = score.ID;
+				highscores.push(score);
+				function comparator(a, b) {
+					if (b.score === a.score) return 0;
+					return b.score - a.score;
+				}
+				highscores.sort(comparator);
+				var newHighScore = highscores[0].ID === id;
+				self.displayHighscores(highscores, newHighScore, id);
+				self.resume();
+				self.setInstruction("Enter to Play Again.");
+			});
+		})
+		.fail(function(){
+			self.getLocalHighScores().done(function(){
+				self.resume();
+				self.setInstruction("Enter to Play Again.");
+			});
+		});
 	}
 	
 	this.isCollision = function(box1, box2){
@@ -874,10 +1333,7 @@ function Game(canvas){
 				var item2 = items[j];
 				if(	i === j || 
 					item2.destroyed || 
-					(item1 instanceof asteroid && item2 instanceof asteroid) ||
-					(item1 instanceof spaceship && item2 instanceof missile) ||
-					(item1 instanceof missile && item2 instanceof missile) ||
-					(item2 instanceof spaceship && item1 instanceof missile)) {
+					!item1.canCollideWith(item2)){
 					continue;
 				}
 				
@@ -886,6 +1342,16 @@ function Game(canvas){
 				var d = distance({x: item1.x, y: item1.y}, {x: item2.x, y: item2.y});
 				if(d < 100){
 					if(this.isCollision(box1, box2)){
+						if(item1 instanceof powerup){
+							this.addPowerUp(item1);
+							item1.destroy();
+							continue;
+						}
+						if(item2 instanceof powerup){
+							this.addPowerUp(item2);
+							item2.destroy();
+							continue;
+						}
 						item1.destroy();
 						item2.destroy();
 						var point = midpoint({x:item1.x, y:item1.y}, {x:item2.x, y:item2.y});
@@ -904,9 +1370,14 @@ function Game(canvas){
 		hideMessage();
 	}	
 	
-	this.displayMessage = function(message){
-		clear();
-		messageDiv.innerHTML = message;
+	this.displayMessage = function(message, append){
+	    clear();
+	    if (append) {
+	        messageDiv.innerHTML += message;
+	    }
+	    else {
+	        messageDiv.innerHTML = message;
+	    }
 		var style = messageDiv.style;
 		style.display = "block";
 		style.top = canvas.height/2 - messageDiv.clientHeight/2 + "px";
@@ -917,24 +1388,91 @@ function Game(canvas){
 		messageDiv.style.display = "none";
 	}
 	
-	this.displayHighscores = function(highscores, newHighScore){
+	this.setInstruction = function(instruction){
+		if(instruction != instructionSpan.innerHTML){
+			instructionSpan.innerHTML = instruction;
+		}
+	}
+
+	this.getLocalHighScores = function() {
+		var def = $.Deferred();
+		this.getNickname(function(name){
+			var highscores = JSON.parse(window.localStorage.getItem("asteroidsjs.highscores"));
+			if(!highscores){
+				highscores = [];
+			}
+			function compare(score1, score2){
+				if(score1.score === score2.score){
+					return 0;
+				}
+				return score2.score - score1.score;
+			}
+			var id = highscores.length;
+			highscores.push({ID:id, name: name, levelReached: level, score: score, date: dateTimeString(new Date())});
+			highscores.sort(compare);
+			highscores.splice(20); //only keep the top 20!
+			var newHighScore = highscores[0].ID === id;
+			window.localStorage.setItem("asteroidsjs.highscores", JSON.stringify(highscores));
+			this.displayHighscores(highscores, newHighScore, id);
+			def.resolve(highscores);
+		});	
+		return def.promise();
+	}
+	
+	this.getHighScores = function () {
+	    return $.ajax({
+	        url: "api/score",
+	        type: "GET"
+	    })
+	}
+	
+	this.getNickname = function(callback){
+		var self = this;
+		this.displayMessage("Enter Nickname:<div><input id='nickname'/><button id='postScore'>Submit</button></div>", true);
+	    var input = document.getElementById("nickname");
+	    $("#postScore").one("click", function () {
+	        var name = input.value;
+	        callback.call(self, name);		
+		});
+	}
+
+	this.postNewScore = function () {
+	    var def = $.Deferred();
+	    this.getNickname(function(name){
+			var scoreObj = { name: name, score: score, levelReached: level };
+	        $.ajax({
+	            url: "api/score",
+	            type: "POST",
+	            data: scoreObj
+	        }).done(def.resolve);
+		});
+	    return def.promise();	    
+	}
+	
+	this.displayHighscores = function (highscores, newHighScore, newScoreId) {
 		var html = "<div>Game Over!</div>";
 		if(newHighScore){
 			html += "<div class='newHighScore'>NEW HIGH SCORE!!</div>";
 		}
-		html += 
+		html +=
 		"<table id='highscoresTable'>" +
-			"<tbody>";
+            "<tbody>" +
+			"<tr><th>Name</th><th>Score</th><th>Level</th><th>Date</th></tr>";
+
 		for(var i = 0; i < highscores.length; i++){
 			var aScore = highscores[i];
-			if(aScore.score === score){
+			if(aScore.ID === newScoreId){
 				html += "<tr class='playerScore'>";
 			}
 			else{
 				html += "<tr>";
 			}
-			html += "<td class='score'>"+aScore.score+"</td>";
-			html += "<td class='date'>"+aScore.date+"</td>";
+		    //"2014-04-29T20:22:09.62"			
+			var dateTime = dateTimeString(new Date(aScore.date));
+			html += "<td class='name'>" + aScore.name + "</td>";
+			html += "<td class='score'>" + aScore.score + "</td>";
+			html += "<td class='level'>" + aScore.levelReached + "</td>";
+			html += "<td class='date'>" + dateTime + "</td>";
 			html += "</tr>";
 		}		
 		html += 
@@ -970,6 +1508,15 @@ if(!window.localStorage){
 ////////////////////////////////////////////////
 //  Utility functions
 ///////////////////////////////////////////////
+
+function contains(array, obj){
+	for(var i = 0; i < array.length; i++){
+		if(array[i] === obj){
+			return i;
+		}
+	}
+	return -1;
+}
 				  
 function distance(p1, p2){
 	return Math.sqrt(Math.pow((p2.x - p1.x), 2) + Math.pow((p2.y - p1.y), 2));
@@ -1105,7 +1652,7 @@ function getArcCoordinates ( x, y, degAngle, radius){
 
 
 var space = document.getElementById("space");
-space.height = window.innerHeight - 50;
-space.width = window.innerWidth - 50;
+space.height = 670;
+space.width = 1080;
 var game = new Game(space);
 
