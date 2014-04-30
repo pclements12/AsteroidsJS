@@ -6,6 +6,7 @@ function Game(canvas){
 	var player;
 	var items = [];
 	var effects = [];
+	var wait = false;
 	
 	var powers = [Powers.StickyShip, Powers.MultiShot, Powers.BigShot, Powers.OneUp, Powers.TimeFreeze];
 	
@@ -38,20 +39,26 @@ function Game(canvas){
 			leftInterval = rightInterval = upInterval = shootInterval = null;
 		}
 		
-		return function(e){
-			if(e.keyCode === 13 && !game.started){
-				game.start();
-			}
-			else if(e.keyCode === 13 && game.started && roundOver){
-				game.beginRound();
-			}
-			else if(e.keyCode === 13 && player.destroyed){
-				player.reset();
-				game.addItem(player);
-			}
-			else if(gameOver && e.keyCode === 13){
-				game.reset();
-			}
+		return function (e) {
+		    //prevent navigation keys from doing their default behaviors
+		    if ((!game.waiting() && e.keyCode == 32) || (e.keyCode >= 37 && e.keyCode <= 40)) {
+		        e.preventDefault();
+		    }
+		    if (!game.waiting()) {
+		        if (e.keyCode === 13 && !game.started) {
+		            game.start();
+		        }
+		        else if (e.keyCode === 13 && game.started && roundOver) {
+		            game.beginRound();
+		        }
+		        else if (e.keyCode === 13 && player.destroyed) {
+		            player.reset();
+		            game.addItem(player);
+		        }
+		        else if (gameOver && e.keyCode === 13) {
+		            game.reset();
+		        }
+		    }
 			if(!player || player.destroyed || roundOver || gameOver){
 				clearIntervals();
 				return;
@@ -66,7 +73,7 @@ function Game(canvas){
 					game.unpause();
 					return;
 			};
-			player.handleKeyInput(e);			
+			player.handleKeyInput(e);
 		}
 	})(this);
 	
@@ -144,46 +151,16 @@ function Game(canvas){
 		levelLabel.innerHTML = level;	
 	}
 	
-	function pad(array){
-		for(var i = 0; i < array.length; i++){
-			var str = String(array[i]);
-			while(str.length < 2){
-				str = "0" + str;
-			}
-			array[i] = str;
-		}
-	}
-	
 	function dateTimeString (date){
 		var d = [date.getMonth() + 1, date.getDate(), date.getFullYear()].join("/");
-		var t = [date.getHours() > 12 ? date.getHours() % 12 : date.getHours(), date.getMinutes(), date.getSeconds()];
-		pad(t);
-		t = t.join(":");
+		var t = date.toLocaleTimeString();
 		return d + " " + t;
 	};
 	
 	this.updateGameState = function(){
 		if(player.destroyed){
-			if(player.lives <= 0){
-				gameOver = true;
-				this.started = false;
-				var highscores = JSON.parse(window.localStorage.getItem("asteroidsjs.highscores"));
-				if(!highscores){
-					highscores = [];
-				}
-				function compare(score1, score2){
-					if(score1.score === score2.score){
-						return 0;
-					}
-					return score2.score - score1.score;
-				}
-				
-				highscores.push({score: score, date: dateTimeString(new Date())});
-				highscores.sort(compare);
-				highscores.splice(10); //only keep the top 10!
-				var newHighScore = highscores[0].score === score;
-				window.localStorage.setItem("asteroidsjs.highscores", JSON.stringify(highscores));
-				this.displayHighscores(highscores, newHighScore);			
+		    if (player.lives <= 0) {
+				this.handleGameOver();
 			}
 			else{
 				this.setInstruction("Enter to respawn");
@@ -209,6 +186,18 @@ function Game(canvas){
 			pause = false;
 			requestAnimationFrame(this.draw);
 		}
+	}
+
+	this.waiting = function () {
+	    return wait;
+	}
+
+	this.wait = function () {
+	    wait = true;
+	}
+
+	this.resume = function () {
+	    wait = false;
 	}
 	
 	// diagnostic variables (perf measurement)
@@ -298,6 +287,9 @@ function Game(canvas){
 			else if(bag[0].length > 0){
 				return bag[0][randomInt(0, bag[0].length)];
 			}
+			else if(powers.length > 0){
+			    return powers[randomInt(0, powers.length)];
+			}
 		}
 	})()
 	
@@ -337,9 +329,8 @@ function Game(canvas){
 		player.reset();
 		this.addItem(player);
 		roundOver = false;
-		
 		requestAnimationFrame(this.draw);
-	}	
+	}
 	
 	this.endRound = function(){
 		level++;
@@ -347,6 +338,37 @@ function Game(canvas){
 		score += 1000 * level;
 		this.removePowerUps();
 		this.displayMessage("Round Complete!");
+	}
+	
+	this.handleGameOver = function(){
+		this.removePowerUps();
+		gameOver = true;
+		this.started = false;
+		this.displayMessage("<div>Game Over!</div>");
+		this.wait();
+		var self = this;
+		self.getHighScores().done(function (highscores) {
+			highscores.splice(20);
+			self.postNewScore().done(function (score) {
+				var id = score.ID;
+				highscores.push(score);
+				function comparator(a, b) {
+					if (b.score === a.score) return 0;
+					return b.score - a.score;
+				}
+				highscores.sort(comparator);
+				var newHighScore = highscores[0].ID === id;
+				self.displayHighscores(highscores, newHighScore, id);
+				self.resume();
+				self.setInstruction("Enter to Play Again.");
+			});
+		})
+		.fail(function(){
+			self.getLocalHighScores().done(function(){
+				self.resume();
+				self.setInstruction("Enter to Play Again.");
+			});
+		});
 	}
 	
 	this.isCollision = function(box1, box2){
@@ -417,9 +439,14 @@ function Game(canvas){
 		hideMessage();
 	}	
 	
-	this.displayMessage = function(message){
-		clear();
-		messageDiv.innerHTML = message;
+	this.displayMessage = function(message, append){
+	    clear();
+	    if (append) {
+	        messageDiv.innerHTML += message;
+	    }
+	    else {
+	        messageDiv.innerHTML = message;
+	    }
 		var style = messageDiv.style;
 		style.display = "block";
 		style.top = canvas.height/2 - messageDiv.clientHeight/2 + "px";
@@ -435,25 +462,87 @@ function Game(canvas){
 			instructionSpan.innerHTML = instruction;
 		}
 	}
+
+	this.getLocalHighScores = function() {
+		var def = $.Deferred();
+		this.getNickname(function(name){
+			var highscores = JSON.parse(window.localStorage.getItem("asteroidsjs.highscores"));
+			if(!highscores){
+				highscores = [];
+			}
+			function compare(score1, score2){
+				if(score1.score === score2.score){
+					return 0;
+				}
+				return score2.score - score1.score;
+			}
+			var id = highscores.length;
+			highscores.push({ID:id, name: name, levelReached: level, score: score, date: dateTimeString(new Date())});
+			highscores.sort(compare);
+			highscores.splice(20); //only keep the top 20!
+			var newHighScore = highscores[0].ID === id;
+			window.localStorage.setItem("asteroidsjs.highscores", JSON.stringify(highscores));
+			this.displayHighscores(highscores, newHighScore, id);
+			def.resolve(highscores);
+		});	
+		return def.promise();
+	}
 	
-	this.displayHighscores = function(highscores, newHighScore){
+	this.getHighScores = function () {
+	    return $.ajax({
+	        url: "api/score",
+	        type: "GET"
+	    })
+	}
+	
+	this.getNickname = function(callback){
+		var self = this;
+		this.displayMessage("Enter Nickname:<div><input id='nickname'/><button id='postScore'>Submit</button></div>", true);
+	    var input = document.getElementById("nickname");
+	    $("#postScore").one("click", function () {
+	        var name = input.value;
+	        callback.call(self, name);		
+		});
+	}
+
+	this.postNewScore = function () {
+	    var def = $.Deferred();
+	    this.getNickname(function(name){
+			var scoreObj = { name: name, score: score, levelReached: level };
+	        $.ajax({
+	            url: "api/score",
+	            type: "POST",
+	            data: scoreObj
+	        }).done(def.resolve);
+		});
+	    return def.promise();
+	    
+	}
+	
+	this.displayHighscores = function (highscores, newHighScore, newScoreId) {
 		var html = "<div>Game Over!</div>";
 		if(newHighScore){
 			html += "<div class='newHighScore'>NEW HIGH SCORE!!</div>";
 		}
-		html += 
+		html +=
 		"<table id='highscoresTable'>" +
-			"<tbody>";
+            "<tbody>" +
+			"<tr><th>Name</th><th>Score</th><th>Level</th><th>Date</th></tr>";
+
 		for(var i = 0; i < highscores.length; i++){
 			var aScore = highscores[i];
-			if(aScore.score === score){
+			if(aScore.ID === newScoreId){
 				html += "<tr class='playerScore'>";
 			}
 			else{
 				html += "<tr>";
 			}
-			html += "<td class='score'>"+aScore.score+"</td>";
-			html += "<td class='date'>"+aScore.date+"</td>";
+		    //"2014-04-29T20:22:09.62"			
+			var dateTime = dateTimeString(new Date(aScore.date));
+			html += "<td class='name'>" + aScore.name + "</td>";
+			html += "<td class='score'>" + aScore.score + "</td>";
+			html += "<td class='level'>" + aScore.levelReached + "</td>";
+			html += "<td class='date'>" + dateTime + "</td>";
 			html += "</tr>";
 		}		
 		html += 

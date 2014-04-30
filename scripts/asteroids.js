@@ -165,7 +165,7 @@ function getArcCoordinates ( x, y, degAngle, radius){
 
 
 var space = document.getElementById("space");
-space.height = window.innerHeight - 50;
-space.width = window.innerWidth - 50;
+space.height = 670;
+space.width = 1080;
 var game = new Game(space);
 

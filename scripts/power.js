@@ -59,8 +59,8 @@ Powers.TimeFreeze = new power({
 	label: "Freeze!",
 	phase: "update",
 	objectType: asteroid,
+    asteroids: [],
 	activate : function(item){
-		this.asteroids = [];
 		this.asteroids.push(item);
 		item.velocity = {x : 0, y: 0};
 	},

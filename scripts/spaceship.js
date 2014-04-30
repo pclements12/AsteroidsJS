@@ -261,7 +261,7 @@ function spaceship(canvas){
 					}
 					up = down;
 					break;
-				case 32:
+			    case 32:
 					if(!shoot && down){
 						shootInterval = setInterval(function(){
 							player.shoot();
