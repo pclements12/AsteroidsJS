@@ -1,4 +1,3 @@
-
 function Game(canvas){
 	var level = 0;
 	var roundOver = true;
@@ -515,8 +514,7 @@ function Game(canvas){
 	            data: scoreObj
 	        }).done(def.resolve);
 		});
-	    return def.promise();
-	    
+	    return def.promise();	    
 	}
 	
 	this.displayHighscores = function (highscores, newHighScore, newScoreId) {
