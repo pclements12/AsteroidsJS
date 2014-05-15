@@ -4,6 +4,7 @@ function Game(canvas){
 	var roundOver = true;
 	var gameOver = false;
 	var player;
+	var alien;
 	var items = [];
 	var effects = [];
 	var asteroids = [];
@@ -15,7 +16,7 @@ function Game(canvas){
 	
 	var messageDiv = document.getElementById("message");
 	var highscoresDiv = document.getElementById("highscores");
-	
+
 	var keyListener = (function(game){
 		var leftInterval, rightInterval, upInterval, shootInterval;
 		var left = false;
@@ -267,11 +268,16 @@ function Game(canvas){
 		}
 		return -1;
 	}
+
+	function getLevel() {
+		return this.level;
+	}
 	
 	this.started = false;
 	this.start = function(){
 		score = 0;		
 		player = new spaceship(canvas);
+		alien = new alienship(canvas);
 		this.started = true;
 		this.beginRound();
 	}
