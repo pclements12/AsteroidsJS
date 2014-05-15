@@ -3,11 +3,11 @@ function alienship(canvas){
 
 	this.angle = Math.PI / 2; //constant, straight up
 
-	var lastTurnch = (new Date()).getTime();
+	var lastTurn = (new Date()).getTime();
 	var shotDelay = 0; //milliseconds
 
-	this.getTurnDelay = function(){
-		return turnDelay;
+	this.getLastTurn = function(){
+		return lastTurn;
 	}
 
 	function init(){
