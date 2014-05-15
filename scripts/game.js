@@ -308,6 +308,7 @@ function Game(canvas){
 		}
 		player.reset();
 		this.addItem(player);
+		this.addItem(alien);
 		roundOver = false;
 		
 		requestAnimationFrame(this.draw);

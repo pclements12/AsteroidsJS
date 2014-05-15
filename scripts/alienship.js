@@ -47,12 +47,12 @@ function alienship(canvas){
 
 	this.getShipPoints = function(){
 		var degAngle = toDegrees(this.angle);
-		return [getArcCoordinates(this.x, this.y, normalizeAngle(120), 20),
+		return [getArcCoordinates(this.x, this.y, normalizeAngle(0), 20),
 				getArcCoordinates(this.x, this.y, normalizeAngle(60), 20),
-				getArcCoordinates(this.x, this.y, normalizeAngle(300), 20),
+				getArcCoordinates(this.x, this.y, normalizeAngle(120), 20),
+				getArcCoordinates(this.x, this.y, normalizeAngle(180), 20),
 				getArcCoordinates(this.x, this.y, normalizeAngle(240), 20),
-				getArcCoordinates(this.x, this.y, normalizeAngle(0), 20),
-				getArcCoordinates(this.x, this.y, normalizeAngle(180), 20)];
+				getArcCoordinates(this.x, this.y, normalizeAngle(300), 20)];
 	}
 
 	this.paint = function(){
@@ -60,7 +60,7 @@ function alienship(canvas){
 		var shipPoints = this.getShipPoints();
 		ctx.strokeStyle = 'rgb(255, 255, 255)';
 		connectTheDots(ctx, shipPoints);
-		connectTheDots(ctx, shipPoints[5], shipPoints[6]);
+		connectTheDots(ctx, shipPoints[0], shipPoints[3]);
 
 	}
 
