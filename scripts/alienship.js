@@ -6,6 +6,7 @@ function alienship(canvas){
 	this.angle = Math.PI / 2; //constant, straight up
 
 	var lastTurn = (new Date()).getTime();
+	var lastShot = (new Date()).getTime();
 	var shotDelay = 0; //milliseconds
 
 	this.getLastTurn = function(){
@@ -19,17 +20,26 @@ function alienship(canvas){
 		this.x = randomInt(0, this.canvas.width);
 		this.y = randomInt(0, this.canvas.height);
 		this.paint;
-		//var level = getLevel();
-		//if (getLevel() < 12) {
-		//	this.setVelocity(	randomFloat(-level - 5, level + 5),
-		//						randomFloat(-level - 5, level + 5));
-		//} else {
-		//	this.setVelocity(	randomFloat(-17, 17), 
-		//						randomFloat(-17, 17));
-		//}
-		//this.shotDelay = randomInt(2000 - (10 * level), 5000 - (10 * level));
+		var level = game.getLevel();
+		if (level < 12) {
+			this.setVelocity(	randomFloat(-level - 3, level + 3),
+								randomFloat(-level - 3, level + 3));
+		} else {
+			this.setVelocity(	randomFloat(-17, 17), 
+								randomFloat(-17, 17));
+		}
+		//set initial shot delay
+		this.shotDelay = randomInt(2000 - (10 * level), 5000 - (10 * level));
 	}	
 
+	this.canCollideWith = function(item){
+		var can =  
+			(item instanceof asteroid ||
+			item instanceof missile ||
+			item instanceof spaceship)
+		return can;
+	}
+	
 	this.getBoundingBox = function getBoundingBox(){
 		var shipPoints = this.getShipPoints();
 		var points = shipPoints;
@@ -62,14 +72,30 @@ function alienship(canvas){
 		var shipPoints = this.getShipPoints();
 		ctx.strokeStyle = 'rgb(255, 255, 255)';
 		connectTheDots(ctx, shipPoints);
-		connectTheDots(ctx, shipPoints[0], shipPoints[3]);
+		ctx.beginPath();
+		ctx.moveTo(shipPoints[0].x, shipPoints[0].y);
+		ctx.lineTo(shipPoints[3].x, shipPoints[3].y);
+		ctx.stroke();
+		connectTheDots(ctx, this.getBoundingBox());
 	}
 
 	this.shoot = function(){
-
+		this.lastShot = (new Date()).getTime();
+		this.shotDelay = randomInt(2000 - (10 * level), 5000 - (10 * level));
+		var p = game.getPlayer().getCoordinates();
+		var a = this.getCoordinates();
+		var fuzz = randomInt(-10, 10);
+		var vector = {x: p.x - a.x + fuzz, y: p.y - a.y + fuzz};
+		var angle = Math.atan(vector.y/vector.x);
+		var origin = vectorAdd(this.getCoordinates(), scaleVector(angle, 20));
+		game.addItem(new missile(this.canvas, origin.x, origin.y, angle, this.velocity.x, this.velocity.y, 3));
 	}
 
 	this.update = function(){
+		var now = (new Date()).getTime();
+		if(now - lastShot > this.shotDelay){
+			this.shoot();
+		}
 		alienship.prototype.update.call(this);
 		this.paint();
 	}

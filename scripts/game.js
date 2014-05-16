@@ -268,8 +268,12 @@ function Game(canvas){
 		}
 	}
 
-	function getLevel() {
-		return this.level;
+	this.getLevel = function getLevel() {
+		return level;
+	}
+	
+	this.getPlayer = function(){
+		return player;
 	}
 	
 	this.getNextPowerUp = (function(){		
