@@ -3,6 +3,7 @@ function Game(canvas){
 	var roundOver = true;
 	var gameOver = false;
 	var player;
+	var alien;
 	var items = [];
 	var effects = [];
 	var wait = false;
@@ -22,7 +23,7 @@ function Game(canvas){
 	var powerUpSpan = document.getElementById("powerUp");
 	var instructionSpan = document.getElementById("instruction");
 	instructionSpan.style.left = canvas.width / 2 - 100 + "px";
-	
+
 	var keyListener = (function(game){
 		var leftInterval, rightInterval, upInterval, shootInterval;
 		var left = false;
@@ -266,6 +267,10 @@ function Game(canvas){
 			game.addItem(new powerup(canvas, x, y, power));			
 		}
 	}
+
+	function getLevel() {
+		return this.level;
+	}
 	
 	this.getNextPowerUp = (function(){		
 		var bag = [[],[],[]];
@@ -296,6 +301,7 @@ function Game(canvas){
 	this.start = function(){
 		score = 0;		
 		player = new spaceship(canvas);
+		alien = new alienship(canvas);
 		this.started = true;
 		this.beginRound();
 	}
@@ -327,6 +333,7 @@ function Game(canvas){
 		}
 		player.reset();
 		this.addItem(player);
+		this.addItem(alien);
 		roundOver = false;
 		requestAnimationFrame(this.draw);
 	}
