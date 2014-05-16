@@ -76,7 +76,6 @@ function alienship(canvas){
 		ctx.moveTo(shipPoints[0].x, shipPoints[0].y);
 		ctx.lineTo(shipPoints[3].x, shipPoints[3].y);
 		ctx.stroke();
-		connectTheDots(ctx, this.getBoundingBox());
 	}
 
 	this.shoot = function(){
@@ -97,7 +96,6 @@ function alienship(canvas){
 			this.shoot();
 		}
 		alienship.prototype.update.call(this);
-		this.paint();
 	}
 
 	this.init = init;
