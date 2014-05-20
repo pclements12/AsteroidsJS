@@ -2,9 +2,8 @@ alienship.prototype = new SpaceObject();
 function alienship(canvas){
 	this.canvas = canvas;
 
-	var turnDelay = (new Date()).getTime();
+	var turnDelay = 0; //ms
 	this.angle = Math.PI / 2; //constant, straight up
-
 	var lastTurn = (new Date()).getTime();
 	var lastShot = (new Date()).getTime();
 	var shotDelay = 0; //milliseconds
@@ -21,25 +20,24 @@ function alienship(canvas){
 		this.y = randomInt(0, this.canvas.height);
 		this.paint;
 		var level = game.getLevel();
-		this.setVelocity(0,0);
-		if (level < 10) {
-			this.setVelocity(	randomFloat(-level - 3, level + 3),
-						randomFloat(-level - 3, level + 3));
+		if (level < 7) {
+			this.setVelocity(	randomFloat(-level - 1, level + 1),
+						randomFloat(-level - 1, level + 1));
 		} else {
-			this.setVelocity(	randomFloat(-13, 13), 
-						randomFloat(-13, 13));
+			this.setVelocity(	randomFloat(-7, 7), 
+						randomFloat(-7, 7));
 		}
-		this.setVelocity(0,0);
 		window.alien = this;
 		//set initial shot delay
 		this.shotDelay = randomInt(2000 - (10 * level), 5000 - (10 * level));
+		this.turnDelay = randomInt(1000, 3500);
 	}	
 
 	this.canCollideWith = function(item){
 		var can =  
-			(item instanceof asteroid ||
+			(//(item instanceof asteroid ||
 			item instanceof missile ||
-			item instanceof spaceship)
+			item instanceof spaceship);
 		return can;
 	}
 	
@@ -88,7 +86,8 @@ function alienship(canvas){
 		var p = game.getPlayer().getCoordinates();
 		var a = this.getCoordinates();
 		//set fuzz to be +/- 6 degrees for this guy (seems to be about the right balance)
-		var fuzz = toRadians(randomFloat(-6, 6));
+		//bumped fuzz up to +- 11, seemed too accurate to me
+		var fuzz = toRadians(randomFloat(-11, 11));
 		var vector = {x: p.x - a.x, y: p.y - a.y};
 		var angle = Math.atan(vector.y/vector.x);
 		var origin = vectorAdd(this.getCoordinates(), scaleVector(angle, 23));
@@ -99,10 +98,39 @@ function alienship(canvas){
 		}
 	}
 
+	this.changeDirection = function() {
+		var max = game.getLevel() + 3;
+		if (max > 7) {
+			max = 7;
+		}		
+		var xVel = this.getVelocity().x;
+		var yVel = this.getVelocity().y;
+		this.setVelocity(	xVel + randomFloat(-2, 2),
+					yVel + randomFloat(-2, 2));
+		if (this.getVelocity().x > max) {
+			this.setVelocity( 7, this.getVelocity().y);
+		}
+		if (this.getVelocity().x < -max) {
+			this.setVelocity( -max, this.getVelocity().y);
+		}
+		if (this.getVelocity().y > max) {
+			this.setVelocity( this.getVelocity().x, max);
+		}
+		if (this.getVelocity().y < -max) {
+			this.setVelocity( this.getVelocity().x, -max);
+		}
+		console.log(this.getVelocity());
+		this.turnDelay = randomInt(1000, 3500);
+		lastTurn = (new Date()).getTime();		
+	}
+
 	this.update = function(){
 		var now = (new Date()).getTime();
 		if(now - lastShot > this.shotDelay){
 			this.shoot();
+		}
+		if(now - lastTurn > this.turnDelay){
+			this.changeDirection();
 		}
 		alienship.prototype.update.call(this);
 	}
