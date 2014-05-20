@@ -7,6 +7,8 @@ function alienship(canvas){
 	var lastTurn = (new Date()).getTime();
 	var lastShot = (new Date()).getTime();
 	var shotDelay = 0; //milliseconds
+	var radius = 20;
+	this.points = radius * 10;
 
 	this.getLastTurn = function(){
 		return lastTurn;
@@ -35,7 +37,7 @@ function alienship(canvas){
 
 	this.canCollideWith = function(item){
 		var can =  
-			(//(item instanceof asteroid ||
+			(item instanceof asteroid ||
 			item instanceof missile ||
 			item instanceof spaceship);
 		return can;
@@ -60,12 +62,12 @@ function alienship(canvas){
 
 	this.getShipPoints = function(){
 		var degAngle = toDegrees(this.angle);
-		return [getArcCoordinates(this.x, this.y, normalizeAngle(0), 20),
-				getArcCoordinates(this.x, this.y, normalizeAngle(60), 20),
-				getArcCoordinates(this.x, this.y, normalizeAngle(120), 20),
-				getArcCoordinates(this.x, this.y, normalizeAngle(180), 20),
-				getArcCoordinates(this.x, this.y, normalizeAngle(240), 20),
-				getArcCoordinates(this.x, this.y, normalizeAngle(300), 20)];
+		return [getArcCoordinates(this.x, this.y, normalizeAngle(0), radius),
+				getArcCoordinates(this.x, this.y, normalizeAngle(60), radius),
+				getArcCoordinates(this.x, this.y, normalizeAngle(120), radius),
+				getArcCoordinates(this.x, this.y, normalizeAngle(180), radius),
+				getArcCoordinates(this.x, this.y, normalizeAngle(240), radius),
+				getArcCoordinates(this.x, this.y, normalizeAngle(300), radius)];
 	}
 
 	this.paint = function(){
@@ -119,7 +121,7 @@ function alienship(canvas){
 		if (this.getVelocity().y < -max) {
 			this.setVelocity( this.getVelocity().x, -max);
 		}
-		console.log(this.getVelocity());
+		//console.log(this.getVelocity());
 		this.turnDelay = randomInt(1000, 3500);
 		lastTurn = (new Date()).getTime();		
 	}
