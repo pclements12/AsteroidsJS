@@ -34,7 +34,7 @@ function alienship(canvas){
 
 	this.canCollideWith = function(item){
 		var can =  
-			(item instanceof asteroid ||
+			(//(item instanceof asteroid ||
 			item instanceof missile ||
 			item instanceof spaceship)
 		return can;
@@ -79,9 +79,10 @@ function alienship(canvas){
 	}
 
 	this.shoot = function(){
-		this.lastShot = (new Date()).getTime();
+		lastShot = (new Date()).getTime();
 		var level = game.getLevel();
 		this.shotDelay = randomInt(2000 - (10 * level), 5000 - (10 * level));
+		console.log("new shot delay: ", this.shotDelay);
 		var p = game.getPlayer().getCoordinates();
 		var a = this.getCoordinates();
 		var fuzz = randomInt(-30, 30);
@@ -93,6 +94,7 @@ function alienship(canvas){
 
 	this.update = function(){
 		var now = (new Date()).getTime();
+		console.log("time til next shot: ", now - lastShot, now - lastShot > this.shotDelay ? "SHOOT" : "HOLD FIRE");
 		if(now - lastShot > this.shotDelay){
 			this.shoot();
 		}
