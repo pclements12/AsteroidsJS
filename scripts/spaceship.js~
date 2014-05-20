@@ -126,7 +126,7 @@ function spaceship(canvas){
 		var can =  
 			(item instanceof asteroid ||
 			item instanceof powerup ||
-			item instanceof alien_missile);
+			item instanceof alien_missle);
 		return can;
 	}
 	

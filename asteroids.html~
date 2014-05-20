@@ -26,7 +26,7 @@
 		<script type="text/javascript" src="scripts/asteroid.js"></script>
 		<script type="text/javascript" src="scripts/spaceship.js"></script>
 		<script type="text/javascript" src="scripts/missile.js"></script>
-		<!--<script type="text/javascript" src="scripts/alien_missile.js"></script> -->
+		<script type="text/javascript" src="scripts/alien_missile.js"></script>
 		<script type="text/javascript" src="scripts/power.js"></script>
 		<script type="text/javascript" src="scripts/powerup.js"></script>
 		<script type="text/javascript" src="scripts/smoke.js"></script>

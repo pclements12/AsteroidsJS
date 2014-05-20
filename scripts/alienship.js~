@@ -29,7 +29,7 @@ function alienship(canvas){
 						randomFloat(-13, 13));
 		}
 		//set initial shot delay
-		this.shotDelay = randomInt(2000 - (10 * level), 5000 - (10 * level));
+		this.shotDelay = 500;/*randomInt(2000 - (10 * level), 5000 - (10 * level));*/
 	}	
 
 	this.canCollideWith = function(item){

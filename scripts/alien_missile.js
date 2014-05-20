@@ -1,5 +1,6 @@
-missile.prototype = new SpaceObject();
-function missile(canvas, x, y, angle, srcDx, srcDy, radius){
+alien_missile.prototype = new SpaceObject();
+function alien_missile(canvas, x, y, angle, srcDx, srcDy, radius){
+	
 	this.canvas = canvas;
 	this.ttl; //Time To Live
 	this.startTime;
@@ -35,7 +36,7 @@ function missile(canvas, x, y, angle, srcDx, srcDy, radius){
 		}
 		
 		game.getPowerUp(this, "update");
-		missile.prototype.update.call(this);
+		alien_missile.prototype.update.call(this);
 	}
 	
 	this.paint = function(){
@@ -50,7 +51,8 @@ function missile(canvas, x, y, angle, srcDx, srcDy, radius){
 	}
 	
 	this.canCollideWith = function(item){
-		var can = (item instanceof asteroid);
+		var can = (	item instanceof asteroid ||
+				item instanceof spaceship	);
 		return can;
 	}
 
@@ -65,30 +67,4 @@ function missile(canvas, x, y, angle, srcDx, srcDy, radius){
 	this.init();
 	return this;
 }
-
-
-alien_missile.prototype = new missile();
-function alien_missile(canvas, x, y, angle, srcDx, srcDy, radius){
-		
-	alien_missile.prototype.canvas = canvas;
-	this.ttl; //Time To Live
-	this.startTime;
-	this.x = x;
-	this.y = y;
-	var velocityMx = 10;
-	this.radius = radius ? radius : 3;
-	this.angle = angle;
-	this.velocity = {
-		x : 0,
-		y: 0
-	};
-
-	this.canCollideWith = function(item){
-		var can = (	item instanceof asteroid ||
-				item instanceof spaceship	);
-		return can;
-	}
 	
-	alien_missile.prototype.init;
-	return this;
-}
