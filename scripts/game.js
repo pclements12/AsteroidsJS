@@ -8,6 +8,8 @@ function Game(canvas){
 	var effects = [];
 	var wait = false;
 	
+	var roundStartTime;
+
 	var powers = [Powers.StickyShip, Powers.MultiShot, Powers.BigShot, Powers.OneUp, Powers.TimeFreeze];
 	
 	var powerUps = [];
@@ -166,8 +168,20 @@ function Game(canvas){
 				this.setInstruction("Enter to respawn");
 			}
 		}
-		else if(asteroids.length === 0){
+		else if(asteroids.length === 0 && alien.destroyed){
 			this.endRound();
+		}
+		else if ((new Date()).getTime() - roundStartTime > 
+				15000 - randomInt(0,(1000*(level <= 12 ? level : 12)))) {
+			var alienExists = false;			
+			for(var i = 0; i < items.length; i++) {
+				if (items[i] instanceof alienship) {
+					alienExists = true;
+				}
+			}				
+			if (!alienExists) {
+				this.addItem(alien);
+			}				
 		}
 		else{
 			this.setInstruction("");
@@ -337,7 +351,7 @@ function Game(canvas){
 		}
 		player.reset();
 		this.addItem(player);
-		this.addItem(alien);
+		roundStartTime = (new Date()).getTime();
 		roundOver = false;
 		requestAnimationFrame(this.draw);
 	}
@@ -352,6 +366,9 @@ function Game(canvas){
 	
 	this.handleGameOver = function(){
 		this.removePowerUps();
+		if (!alien.destroyed) {
+			alien.destroy();
+		}
 		gameOver = true;
 		this.started = false;
 		this.displayMessage("<div>Game Over!</div>");
