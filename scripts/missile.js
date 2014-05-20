@@ -89,6 +89,6 @@ function alien_missile(canvas, x, y, angle, srcDx, srcDy, radius){
 		return can;
 	}
 	
-	alien_missile.prototype.init;
+	this.init();
 	return this;
 }
