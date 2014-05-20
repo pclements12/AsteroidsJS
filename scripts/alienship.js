@@ -29,6 +29,8 @@ function alienship(canvas){
 			this.setVelocity(	randomFloat(-13, 13), 
 						randomFloat(-13, 13));
 		}
+		this.setVelocity(0,0);
+		window.alien = this;
 		//set initial shot delay
 		this.shotDelay = randomInt(2000 - (10 * level), 5000 - (10 * level));
 	}	
@@ -83,23 +85,22 @@ function alienship(canvas){
 		lastShot = (new Date()).getTime();
 		var level = game.getLevel();
 		this.shotDelay = randomInt(2000 - (10 * level), 5000 - (10 * level));
-		console.log("new shot delay: ", this.shotDelay);
 		var p = game.getPlayer().getCoordinates();
 		var a = this.getCoordinates();
-		var fuzz = normalizeAngle(randomInt(-15, 15));
+		//set fuzz to be +/- 6 degrees for this guy (seems to be about the right balance)
+		var fuzz = toRadians(randomFloat(-6, 6));
 		var vector = {x: p.x - a.x, y: p.y - a.y};
 		var angle = Math.atan(vector.y/vector.x);
 		var origin = vectorAdd(this.getCoordinates(), scaleVector(angle, 23));
 		if (a.x <= p.x) {	
 			game.addItem(new alien_missile(this.canvas, origin.x, origin.y, angle + fuzz, this.velocity.x, this.velocity.y, 3));
 		} else {
-			game.addItem(new alien_missile(this.canvas, origin.x, origin.y, angle - Math.PI, this.velocity.x, this.velocity.y, 3));
+			game.addItem(new alien_missile(this.canvas, origin.x, origin.y, angle - Math.PI + fuzz, this.velocity.x, this.velocity.y, 3));
 		}
 	}
 
 	this.update = function(){
 		var now = (new Date()).getTime();
-		console.log("time til next shot: ", now - lastShot, now - lastShot > this.shotDelay ? "SHOOT" : "HOLD FIRE");
 		if(now - lastShot > this.shotDelay){
 			this.shoot();
 		}
