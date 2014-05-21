@@ -8,6 +8,7 @@ gulp.task('compress', function() {
   gulp.src('scripts/*.js')
 	.pipe(order([
 		"spaceobject.js",
+		"aienship.js",
 		"asteroid.js",
 		"explosion.js",
 		"smoke.js",
