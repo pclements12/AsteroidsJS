@@ -9,6 +9,7 @@ function Game(canvas){
 	var wait = false;
 	
 	var roundStartTime;
+	var alienRespawn; //counter to prevent aliens from continually spawning
 
 	var powers = [Powers.StickyShip, Powers.MultiShot, Powers.BigShot, Powers.OneUp, Powers.TimeFreeze];
 	
@@ -168,19 +169,15 @@ function Game(canvas){
 				this.setInstruction("Enter to respawn");
 			}
 		}
-		else if(asteroids.length === 0 && alien.destroyed){
+		else if(asteroids.length === 0 && alien.destroyed ||
+			 asteroids.length === 0 && !this.hasAlien()){
 			this.endRound();
 		}
 		else if ((new Date()).getTime() - roundStartTime > 
-				15000 - randomInt(0,(1000*(level <= 12 ? level : 12)))) {
-			var alienExists = false;			
-			for(var i = 0; i < items.length; i++) {
-				if (items[i] instanceof alienship) {
-					alienExists = true;
-				}
-			}				
-			if (!alienExists) {
-				this.addItem(alien);
+				15000 - randomInt(0,(1000*(level <= 12 ? level : 12)))) {	
+			if (!this.hasAlien() && alienRespawn === 0) {
+				this.addItem(new alienship(canvas));
+				alienRespawn++;
 			}				
 		}
 		else{
@@ -188,6 +185,15 @@ function Game(canvas){
 		}
 	}
 	
+	this.hasAlien = function() {			
+		for(var i = 0; i < items.length; i++) {
+			if (items[i] instanceof alienship) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	var pause = false;
 	this.pause = function(){
 		pause = true;
@@ -352,6 +358,7 @@ function Game(canvas){
 		player.reset();
 		this.addItem(player);
 		roundStartTime = (new Date()).getTime();
+		alienRespawn = 0;
 		roundOver = false;
 		requestAnimationFrame(this.draw);
 	}
@@ -366,7 +373,7 @@ function Game(canvas){
 	
 	this.handleGameOver = function(){
 		this.removePowerUps();
-		if (!alien.destroyed) {
+		if (this.hasAlien() && !alien.destroyed) {
 			alien.destroy();
 		}
 		gameOver = true;
