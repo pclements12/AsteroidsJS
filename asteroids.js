@@ -173,6 +173,7 @@ function asteroid(canvas, x, y, radius){
 	this.init();
 	return this;
 };
+
 explosion.prototype = new SpaceObject();
 function explosion(canvas, x, y, radius){
 	this.canvas = canvas;
