@@ -1139,7 +1139,7 @@ function Game(canvas){
 			this.endRound();
 		}
 		else if ((new Date()).getTime() - roundStartTime > 
-				15000 - randomInt(0,(1000*(level <= 12 ? level : 12)))) {	
+				10000 - randomInt(0,(1000*(level <= 10 ? level : 10)))) {	
 			if (!this.hasAlien() && alienRespawn === 0) {
 				this.addItem(new alienship(canvas));
 				alienRespawn++;
@@ -1735,7 +1735,7 @@ function alienship(canvas){
 	var lastTurn = (new Date()).getTime();
 	var lastShot = (new Date()).getTime();
 	var shotDelay = 0; //milliseconds
-	var radius = 20;
+	var radius = 14;
 	this.points = radius * 10;
 
 	this.getLastTurn = function(){
@@ -1816,11 +1816,11 @@ function alienship(canvas){
 		var p = game.getPlayer().getCoordinates();
 		var a = this.getCoordinates();
 		//set fuzz to be +/- 6 degrees for this guy (seems to be about the right balance)
-		//bumped fuzz up to +- 11, seemed too accurate to me
+		//bumped fuzz up to +- 11, seemed too accurate to me -d
 		var fuzz = toRadians(randomFloat(-11, 11));
 		var vector = {x: p.x - a.x, y: p.y - a.y};
 		var angle = Math.atan(vector.y/vector.x);
-		var origin = vectorAdd(this.getCoordinates(), scaleVector(angle, 23));
+		var origin = vectorAdd(this.getCoordinates(), scaleVector(angle, radius + 3));
 		if (a.x <= p.x) {	
 			game.addItem(new alien_missile(this.canvas, origin.x, origin.y, angle + fuzz, this.velocity.x, this.velocity.y, 3));
 		} else {

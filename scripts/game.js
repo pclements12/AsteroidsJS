@@ -174,7 +174,7 @@ function Game(canvas){
 			this.endRound();
 		}
 		else if ((new Date()).getTime() - roundStartTime > 
-				15000 - randomInt(0,(1000*(level <= 12 ? level : 12)))) {	
+				10000 - randomInt(0,(1000*(level <= 10 ? level : 10)))) {	
 			if (!this.hasAlien() && alienRespawn === 0) {
 				this.addItem(new alienship(canvas));
 				alienRespawn++;
