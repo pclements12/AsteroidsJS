@@ -417,15 +417,44 @@ function Game(canvas){
 		
 		var x = false;
 		var y = false;
-		if(	(minX1 > minX2 && minX1 < maxX2) ||
-			(maxX1 > minX2 && maxX1 < maxX2)) {
-			x = true;
-		}
-		if( (minY1 > minY2 && minY1 < maxY2) ||
-			(maxY1 > minY2 && maxY1 < maxY2)) {
-			y = true;
-		}
+		
+		
+		// if(	(minX1 > minX2 && minX1 < maxX2) ||
+			// (maxX1 > minX2 && maxX1 < maxX2)) {
+			// x = true;
+		// }
+		// if( (minY1 > minY2 && minY1 < maxY2) ||
+			// (maxY1 > minY2 && maxY1 < maxY2)) {
+			// y = true;
+		// }
+		var x = this.overlapX(minX1, maxX1, minX2, maxX2);
+		var y = this.overlapY(maxY1, minY1, maxX2, minY2);
 		return x && y;
+	}
+	
+	this.overlapX = function(left1, right1, left2, right2){
+		var overlap =
+			//left1 is between points2
+			(left1 > left2 && left1 < right2) ||
+			//right1 is between points2
+			(right1 > left2 && right1 < right2) ||
+			
+			//left2 is between points1
+			(left2 > left1 && left2 < right1) ||
+			//right2 is between points1
+			(right2 > left1 && right2 < right1);
+		return overlap;
+	}
+	
+	//top = max y (since y is upside down in the canvas)
+	this.overlapY = function(top1, bottom1, top2, bottom2){
+		var overlap =
+			( top1 > bottom2 && top1 < top2) ||
+			( bottom1 > bottom2 && bottom1 < top2) ||
+			
+			(top2 > bottom1 && top2 < top1) ||
+			(bottom2 > bottom1 && bottom2 < top1);
+		return overlap;
 	}
 	
 	this.checkForCollisions = function(){

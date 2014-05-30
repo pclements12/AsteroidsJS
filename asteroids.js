@@ -1,3 +1,143 @@
+////////////////////////////////////////////////
+//  Utility functions
+///////////////////////////////////////////////
+
+function contains(array, obj){
+	for(var i = 0; i < array.length; i++){
+		if(array[i] === obj){
+			return i;
+		}
+	}
+	return -1;
+}
+				  
+function distance(p1, p2){
+	return Math.sqrt(Math.pow((p2.x - p1.x), 2) + Math.pow((p2.y - p1.y), 2));
+}
+
+function midpoint(p1, p2){
+	return {x: (p2.x + p1.x) / 2, y: (p2.y + p1.y) / 2};
+}
+
+function pythagorean(a, b){
+	return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
+}
+
+function normalizeAngle(angle, radians){
+	var max = 360;
+	if(radians){
+		max = (Math.PI * 2);
+	}
+	if(angle < 0){
+		angle = angle + max;
+	}
+	return angle % max;					
+}
+
+function scaleVector(r_angle, magnitude){
+	return {x: Math.cos(r_angle)*magnitude, y: Math.sin(r_angle)*magnitude};
+}
+
+function vectorAdd(/*p1, p2...*/){
+	var x;
+	var y;
+	for(var i = 0; i < arguments.length; i++){
+		if(x == null || y == null){
+			x = arguments[i].x;
+			y = arguments[i].y;
+		}
+		else{
+			x += arguments[i].x;
+			y += arguments[i].y;
+		}
+	}
+	return {x: x, y: y};
+}
+
+//p1 - p2
+function vectorSubtract(/* p1, p2 ...*/){
+	var x;
+	var y;
+	for(var i = 0; i < arguments.length; i++){
+		if(x == null || y == null){
+			x = arguments[i].x;
+			y = arguments[i].y;
+		}
+		else{
+			x -= arguments[i].x;
+			y -= arguments[i].y;
+		}
+	}
+	return {x: x, y: y};
+}
+
+function connectTheDots(ctx, dots){
+	if(!dots || dots.length < 2){
+		return;
+	}
+	ctx.beginPath();
+	for(var i = 0; i < dots.length + 1; i++){
+		if(i == 0){
+			ctx.moveTo(dots[i].x, dots[i].y);
+		}
+		else if(i == dots.length){
+			ctx.lineTo(dots[0].x, dots[0].y);
+			break;
+		}
+		else{
+			ctx.lineTo(dots[i].x, dots[i].y);
+		}
+		//ctx.fillText(i, dots[i].x + 5, dots[i].y + 5);
+	}	
+	ctx.stroke();
+	
+}
+
+//a = iso sides, b = base
+function isoAltitude(a, b){
+	return Math.sqrt(Math.pow(a, 2) - (Math.pow(b, 2) / 4));
+}
+
+function randomInt(min, max){
+	if(min === undefined){
+		min = 0;
+	}
+	if(max === undefined){
+		max = 10;
+	}
+	var range = max - min;
+	return Math.floor((Math.random() * range)) + min;
+}
+
+function randomFloat(min, max){
+	if(min === undefined){
+		min = 0;
+	}
+	if(max === undefined){
+		max = 10;
+	}
+	var range = max - min;
+	return (Math.random() * range) + min;	
+}
+
+function toDegrees(radians){
+	return (radians / Math.PI) * 180;
+}
+
+function toRadians(degrees){
+	return (degrees / 180) * Math.PI;
+}
+
+function getArcCoordinates ( x, y, degAngle, radius){
+	//90 returns x = 0, y = 1;
+	if(radius === undefined){
+		radius = 1;
+	}
+	return {
+		x: x + (Math.cos(toRadians(degAngle)) * radius),
+		y: y + (Math.sin(toRadians(degAngle)) * radius)
+	};
+}
 function SpaceObject(canvas, game){
 	this.canvas = canvas;
 	
@@ -81,6 +221,151 @@ function SpaceObject(canvas, game){
 
 	return this;
 };
+alienship.prototype = new SpaceObject();
+function alienship(canvas){
+	this.canvas = canvas;
+
+	var turnDelay = 0; //ms
+	this.angle = Math.PI / 2; //constant, straight up
+	var lastTurn = (new Date()).getTime();
+	var lastShot = (new Date()).getTime();
+	var shotDelay = 0; //milliseconds
+	var radius = 14;
+	this.points = radius * 10;
+
+	this.getLastTurn = function(){
+		return lastTurn;
+	}
+
+	function init(){
+		this.canvas = canvas;
+		alienship.prototype.init.call(this);
+		this.x, this.y;
+		this.x = randomInt(0, this.canvas.width);
+		this.y = randomInt(0, this.canvas.height);
+		this.paint;
+		var level = game.getLevel();
+		if (level < 7) {
+			this.setVelocity(	randomFloat(-level - 1, level + 1),
+						randomFloat(-level - 1, level + 1));
+		} else {
+			this.setVelocity(	randomFloat(-7, 7), 
+						randomFloat(-7, 7));
+		}
+		window.alien = this;
+		//set initial shot delay
+		this.shotDelay = randomInt(2000 - (10 * level), 5000 - (10 * level));
+		this.turnDelay = randomInt(1000, 3500);
+	}	
+
+	this.canCollideWith = function(item){
+		var can =  
+			(item instanceof asteroid ||
+			item instanceof missile ||
+			item instanceof spaceship);
+		return can;
+	}
+	
+	this.getBoundingBox = function getBoundingBox(){
+		var shipPoints = this.getShipPoints();
+		var points = shipPoints;
+		var maxX = points[0].x;
+		var minX = points[0].x;
+		var maxY = points[0].y;
+		var minY = points[0].y;
+		for (var i = 1; i < 6; i++) {
+			maxX = Math.max(maxX, points[i].x);
+			minX = Math.min(minX, points[i].x);
+			maxY = Math.max(maxY, points[i].y);
+			minY = Math.min(minY, points[i].y);
+		}
+
+		return [{x: minX, y: minY}, {x: maxX, y: minY}, {x: maxX, y: maxY}, {x: minX, y: maxY}];
+	}
+
+	this.getShipPoints = function(){
+		var degAngle = toDegrees(this.angle);
+		return [getArcCoordinates(this.x, this.y, normalizeAngle(0), radius),
+				getArcCoordinates(this.x, this.y, normalizeAngle(60), radius),
+				getArcCoordinates(this.x, this.y, normalizeAngle(120), radius),
+				getArcCoordinates(this.x, this.y, normalizeAngle(180), radius),
+				getArcCoordinates(this.x, this.y, normalizeAngle(240), radius),
+				getArcCoordinates(this.x, this.y, normalizeAngle(300), radius)];
+	}
+
+	this.paint = function(){
+		var ctx = this.canvas.getContext("2d");
+		var shipPoints = this.getShipPoints();
+		ctx.strokeStyle = 'rgb(255, 255, 255)';
+		connectTheDots(ctx, shipPoints);
+		ctx.beginPath();
+		ctx.moveTo(shipPoints[0].x, shipPoints[0].y);
+		ctx.lineTo(shipPoints[3].x, shipPoints[3].y);
+		ctx.stroke();
+	}
+
+	this.shoot = function(){
+		lastShot = (new Date()).getTime();
+		var level = game.getLevel();
+		this.shotDelay = randomInt(2000 - (10 * level), 5000 - (10 * level));
+		var p = game.getPlayer().getCoordinates();
+		var a = this.getCoordinates();
+		//set fuzz to be +/- 6 degrees for this guy (seems to be about the right balance)
+		//bumped fuzz up to +- 11, seemed too accurate to me -d
+		var fuzz = toRadians(randomFloat(-11, 11));
+		var vector = {x: p.x - a.x, y: p.y - a.y};
+		var angle = Math.atan(vector.y/vector.x);
+		var origin = vectorAdd(this.getCoordinates(), scaleVector(angle, radius + 3));
+		if (a.x <= p.x) {	
+			game.addItem(new alien_missile(this.canvas, origin.x, origin.y, angle + fuzz, this.velocity.x, this.velocity.y, 3));
+		} else {
+			game.addItem(new alien_missile(this.canvas, origin.x, origin.y, angle - Math.PI + fuzz, this.velocity.x, this.velocity.y, 3));
+		}
+	}
+
+	this.changeDirection = function() {
+		var max = game.getLevel() + 3;
+		if (max > 7) {
+			max = 7;
+		}		
+		var xVel = this.getVelocity().x;
+		var yVel = this.getVelocity().y;
+		this.setVelocity(	xVel + randomFloat(-2, 2),
+					yVel + randomFloat(-2, 2));
+		if (this.getVelocity().x > max) {
+			this.setVelocity( 7, this.getVelocity().y);
+		}
+		if (this.getVelocity().x < -max) {
+			this.setVelocity( -max, this.getVelocity().y);
+		}
+		if (this.getVelocity().y > max) {
+			this.setVelocity( this.getVelocity().x, max);
+		}
+		if (this.getVelocity().y < -max) {
+			this.setVelocity( this.getVelocity().x, -max);
+		}
+		//console.log(this.getVelocity());
+		this.turnDelay = randomInt(1000, 3500);
+		lastTurn = (new Date()).getTime();		
+	}
+
+	this.update = function(){
+		var now = (new Date()).getTime();
+		if(now - lastShot > this.shotDelay){
+			this.shoot();
+		}
+		if(now - lastTurn > this.turnDelay){
+			this.changeDirection();
+		}
+		alienship.prototype.update.call(this);
+	}
+
+	this.init = init;
+
+	this.init();
+	return this;
+}
+
 asteroid.prototype = new SpaceObject();
 function asteroid(canvas, x, y, radius){	
 	function init(){
@@ -173,7 +458,6 @@ function asteroid(canvas, x, y, radius){
 	this.init();
 	return this;
 };
-
 explosion.prototype = new SpaceObject();
 function explosion(canvas, x, y, radius){
 	this.canvas = canvas;
@@ -1383,15 +1667,44 @@ function Game(canvas){
 		
 		var x = false;
 		var y = false;
-		if(	(minX1 > minX2 && minX1 < maxX2) ||
-			(maxX1 > minX2 && maxX1 < maxX2)) {
-			x = true;
-		}
-		if( (minY1 > minY2 && minY1 < maxY2) ||
-			(maxY1 > minY2 && maxY1 < maxY2)) {
-			y = true;
-		}
+		
+		
+		// if(	(minX1 > minX2 && minX1 < maxX2) ||
+			// (maxX1 > minX2 && maxX1 < maxX2)) {
+			// x = true;
+		// }
+		// if( (minY1 > minY2 && minY1 < maxY2) ||
+			// (maxY1 > minY2 && maxY1 < maxY2)) {
+			// y = true;
+		// }
+		var x = this.overlapX(minX1, maxX1, minX2, maxX2);
+		var y = this.overlapY(maxY1, minY1, maxX2, minY2);
 		return x && y;
+	}
+	
+	this.overlapX = function(left1, right1, left2, right2){
+		var overlap =
+			//left1 is between points2
+			(left1 > left2 && left1 < right2) ||
+			//right1 is between points2
+			(right1 > left2 && right1 < right2) ||
+			
+			//left2 is between points1
+			(left2 > left1 && left2 < right1) ||
+			//right2 is between points1
+			(right2 > left1 && right2 < right1);
+		return overlap;
+	}
+	
+	//top = max y (since y is upside down in the canvas)
+	this.overlapY = function(top1, bottom1, top2, bottom2){
+		var overlap =
+			( top1 > bottom2 && top1 < top2) ||
+			( bottom1 > bottom2 && bottom1 < top2) ||
+			
+			(top2 > bottom1 && top2 < top1) ||
+			(bottom2 > bottom1 && bottom2 < top1);
+		return overlap;
 	}
 	
 	this.checkForCollisions = function(){
@@ -1575,146 +1888,6 @@ if(!window.localStorage){
 		};
 	})();
 }
-////////////////////////////////////////////////
-//  Utility functions
-///////////////////////////////////////////////
-
-function contains(array, obj){
-	for(var i = 0; i < array.length; i++){
-		if(array[i] === obj){
-			return i;
-		}
-	}
-	return -1;
-}
-				  
-function distance(p1, p2){
-	return Math.sqrt(Math.pow((p2.x - p1.x), 2) + Math.pow((p2.y - p1.y), 2));
-}
-
-function midpoint(p1, p2){
-	return {x: (p2.x + p1.x) / 2, y: (p2.y + p1.y) / 2};
-}
-
-function pythagorean(a, b){
-	return Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
-}
-
-function normalizeAngle(angle, radians){
-	var max = 360;
-	if(radians){
-		max = (Math.PI * 2);
-	}
-	if(angle < 0){
-		angle = angle + max;
-	}
-	return angle % max;					
-}
-
-function scaleVector(r_angle, magnitude){
-	return {x: Math.cos(r_angle)*magnitude, y: Math.sin(r_angle)*magnitude};
-}
-
-function vectorAdd(/*p1, p2...*/){
-	var x;
-	var y;
-	for(var i = 0; i < arguments.length; i++){
-		if(x == null || y == null){
-			x = arguments[i].x;
-			y = arguments[i].y;
-		}
-		else{
-			x += arguments[i].x;
-			y += arguments[i].y;
-		}
-	}
-	return {x: x, y: y};
-}
-
-//p1 - p2
-function vectorSubtract(/* p1, p2 ...*/){
-	var x;
-	var y;
-	for(var i = 0; i < arguments.length; i++){
-		if(x == null || y == null){
-			x = arguments[i].x;
-			y = arguments[i].y;
-		}
-		else{
-			x -= arguments[i].x;
-			y -= arguments[i].y;
-		}
-	}
-	return {x: x, y: y};
-}
-
-function connectTheDots(ctx, dots){
-	if(!dots || dots.length < 2){
-		return;
-	}
-	ctx.beginPath();
-	for(var i = 0; i < dots.length + 1; i++){
-		if(i == 0){
-			ctx.moveTo(dots[i].x, dots[i].y);
-		}
-		else if(i == dots.length){
-			ctx.lineTo(dots[0].x, dots[0].y);
-			break;
-		}
-		else{
-			ctx.lineTo(dots[i].x, dots[i].y);
-		}
-		//ctx.fillText(i, dots[i].x + 5, dots[i].y + 5);
-	}	
-	ctx.stroke();
-	
-}
-
-//a = iso sides, b = base
-function isoAltitude(a, b){
-	return Math.sqrt(Math.pow(a, 2) - (Math.pow(b, 2) / 4));
-}
-
-function randomInt(min, max){
-	if(min === undefined){
-		min = 0;
-	}
-	if(max === undefined){
-		max = 10;
-	}
-	var range = max - min;
-	return Math.floor((Math.random() * range)) + min;
-}
-
-function randomFloat(min, max){
-	if(min === undefined){
-		min = 0;
-	}
-	if(max === undefined){
-		max = 10;
-	}
-	var range = max - min;
-	return (Math.random() * range) + min;	
-}
-
-function toDegrees(radians){
-	return (radians / Math.PI) * 180;
-}
-
-function toRadians(degrees){
-	return (degrees / 180) * Math.PI;
-}
-
-function getArcCoordinates ( x, y, degAngle, radius){
-	//90 returns x = 0, y = 1;
-	if(radius === undefined){
-		radius = 1;
-	}
-	return {
-		x: x + (Math.cos(toRadians(degAngle)) * radius),
-		y: y + (Math.sin(toRadians(degAngle)) * radius)
-	};
-}
 
 ////////////////////////////////////////////////
 //  Initialize the game
@@ -1726,148 +1899,3 @@ space.height = 670;
 space.width = 1080;
 var game = new Game(space);
 
-
-alienship.prototype = new SpaceObject();
-function alienship(canvas){
-	this.canvas = canvas;
-
-	var turnDelay = 0; //ms
-	this.angle = Math.PI / 2; //constant, straight up
-	var lastTurn = (new Date()).getTime();
-	var lastShot = (new Date()).getTime();
-	var shotDelay = 0; //milliseconds
-	var radius = 14;
-	this.points = radius * 10;
-
-	this.getLastTurn = function(){
-		return lastTurn;
-	}
-
-	function init(){
-		this.canvas = canvas;
-		alienship.prototype.init.call(this);
-		this.x, this.y;
-		this.x = randomInt(0, this.canvas.width);
-		this.y = randomInt(0, this.canvas.height);
-		this.paint;
-		var level = game.getLevel();
-		if (level < 7) {
-			this.setVelocity(	randomFloat(-level - 1, level + 1),
-						randomFloat(-level - 1, level + 1));
-		} else {
-			this.setVelocity(	randomFloat(-7, 7), 
-						randomFloat(-7, 7));
-		}
-		window.alien = this;
-		//set initial shot delay
-		this.shotDelay = randomInt(2000 - (10 * level), 5000 - (10 * level));
-		this.turnDelay = randomInt(1000, 3500);
-	}	
-
-	this.canCollideWith = function(item){
-		var can =  
-			(item instanceof asteroid ||
-			item instanceof missile ||
-			item instanceof spaceship);
-		return can;
-	}
-	
-	this.getBoundingBox = function getBoundingBox(){
-		var shipPoints = this.getShipPoints();
-		var points = shipPoints;
-		var maxX = points[0].x;
-		var minX = points[0].x;
-		var maxY = points[0].y;
-		var minY = points[0].y;
-		for (var i = 1; i < 6; i++) {
-			maxX = Math.max(maxX, points[i].x);
-			minX = Math.min(minX, points[i].x);
-			maxY = Math.max(maxY, points[i].y);
-			minY = Math.min(minY, points[i].y);
-		}
-
-		return [{x: minX, y: minY}, {x: maxX, y: minY}, {x: maxX, y: maxY}, {x: minX, y: maxY}];
-	}
-
-	this.getShipPoints = function(){
-		var degAngle = toDegrees(this.angle);
-		return [getArcCoordinates(this.x, this.y, normalizeAngle(0), radius),
-				getArcCoordinates(this.x, this.y, normalizeAngle(60), radius),
-				getArcCoordinates(this.x, this.y, normalizeAngle(120), radius),
-				getArcCoordinates(this.x, this.y, normalizeAngle(180), radius),
-				getArcCoordinates(this.x, this.y, normalizeAngle(240), radius),
-				getArcCoordinates(this.x, this.y, normalizeAngle(300), radius)];
-	}
-
-	this.paint = function(){
-		var ctx = this.canvas.getContext("2d");
-		var shipPoints = this.getShipPoints();
-		ctx.strokeStyle = 'rgb(255, 255, 255)';
-		connectTheDots(ctx, shipPoints);
-		ctx.beginPath();
-		ctx.moveTo(shipPoints[0].x, shipPoints[0].y);
-		ctx.lineTo(shipPoints[3].x, shipPoints[3].y);
-		ctx.stroke();
-	}
-
-	this.shoot = function(){
-		lastShot = (new Date()).getTime();
-		var level = game.getLevel();
-		this.shotDelay = randomInt(2000 - (10 * level), 5000 - (10 * level));
-		var p = game.getPlayer().getCoordinates();
-		var a = this.getCoordinates();
-		//set fuzz to be +/- 6 degrees for this guy (seems to be about the right balance)
-		//bumped fuzz up to +- 11, seemed too accurate to me -d
-		var fuzz = toRadians(randomFloat(-11, 11));
-		var vector = {x: p.x - a.x, y: p.y - a.y};
-		var angle = Math.atan(vector.y/vector.x);
-		var origin = vectorAdd(this.getCoordinates(), scaleVector(angle, radius + 3));
-		if (a.x <= p.x) {	
-			game.addItem(new alien_missile(this.canvas, origin.x, origin.y, angle + fuzz, this.velocity.x, this.velocity.y, 3));
-		} else {
-			game.addItem(new alien_missile(this.canvas, origin.x, origin.y, angle - Math.PI + fuzz, this.velocity.x, this.velocity.y, 3));
-		}
-	}
-
-	this.changeDirection = function() {
-		var max = game.getLevel() + 3;
-		if (max > 7) {
-			max = 7;
-		}		
-		var xVel = this.getVelocity().x;
-		var yVel = this.getVelocity().y;
-		this.setVelocity(	xVel + randomFloat(-2, 2),
-					yVel + randomFloat(-2, 2));
-		if (this.getVelocity().x > max) {
-			this.setVelocity( 7, this.getVelocity().y);
-		}
-		if (this.getVelocity().x < -max) {
-			this.setVelocity( -max, this.getVelocity().y);
-		}
-		if (this.getVelocity().y > max) {
-			this.setVelocity( this.getVelocity().x, max);
-		}
-		if (this.getVelocity().y < -max) {
-			this.setVelocity( this.getVelocity().x, -max);
-		}
-		//console.log(this.getVelocity());
-		this.turnDelay = randomInt(1000, 3500);
-		lastTurn = (new Date()).getTime();		
-	}
-
-	this.update = function(){
-		var now = (new Date()).getTime();
-		if(now - lastShot > this.shotDelay){
-			this.shoot();
-		}
-		if(now - lastTurn > this.turnDelay){
-			this.changeDirection();
-		}
-		alienship.prototype.update.call(this);
-	}
-
-	this.init = init;
-
-	this.init();
-	return this;
-}
