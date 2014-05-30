@@ -1,7 +1,24 @@
 var canvas = document.createElement("canvas");
 var game = new Game(canvas);
 
+function testX(aBox, mBox){
+	return game.overlapX(aBox[0].x, aBox[2].x, mBox[0].x, mBox[2].x);
+}
 
+function testY(aBox, mBox){
+	return game.overlapY(aBox[2].y, aBox[0].y, mBox[2].y, mBox[0].y);
+}
+
+function testCollision(aBox, mBox){
+	var collision = game.isCollision(aBox, mBox) && game.isCollision(mBox, aBox);
+	return collision;
+}
+
+function box(min, max){
+	return [{x:min, y:min}, {x:max, y:min}, {x:max, y:max}, {x: min, y: max}];
+}
+
+module("alien & missile");
 test("collision detection",
 	function(){
 		var alien = new alienship(canvas);
@@ -11,30 +28,11 @@ test("collision detection",
 		alien.y = 100;
 		
 		m.x = 97;
-		m.y = 97;
-		
-		function box(min, max){
-			return [{x:min, y:min}, {x:max, y:min}, {x:max, y:max}, {x: min, y: max}];
-		}
-		
+		m.y = 97;		
 		
 		var aBox = alien.getBoundingBox();
 		var mBox = m.getBoundingBox();
-		module("alien & missile");
-		
-		function testX(aBox, mBox){
-			return game.overlapX(aBox[0].x, aBox[2].x, mBox[0].x, mBox[2].x);
-		}
-		
-		function testY(aBox, mBox){
-			return game.overlapY(aBox[2].y, aBox[0].y, mBox[2].y, mBox[0].y);
-		}
-		
-		function testCollision(aBox, mBox){
-			var collision = game.isCollision(aBox, mBox) && game.isCollision(mBox, aBox);
-			return collision;
-		}
-		
+	
 		equal(true, game.overlapX(aBox[0].x, aBox[2].x, mBox[0].x, mBox[2].x), "Overlap X");
 		equal(true, game.overlapX(mBox[0].x, mBox[2].x, aBox[0].x, aBox[2].x), "Reverse Overlap X");
 		
@@ -43,8 +41,13 @@ test("collision detection",
 		
 		equal(true, game.isCollision(aBox, mBox), "Collision");
 		equal(true, game.isCollision(mBox, aBox), "Reverse Collision");
-		
-		module("boxes");
+	}
+);
+
+module("boxes");
+test("boxes", 
+
+	function(){
 		var box1 = box(0, 5);
 		var box2 = box(1, 2);
 		equal(true, testX(box1, box2), "Overlap X");
