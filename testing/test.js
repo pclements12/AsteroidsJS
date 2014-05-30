@@ -46,7 +46,6 @@ test("collision detection",
 
 module("boxes");
 test("boxes", 
-
 	function(){
 		var box1 = box(0, 5);
 		var box2 = box(1, 2);
@@ -73,7 +72,6 @@ test("boxes",
 		box2 = [{x:100, y:5}, {x:110, y:5}, {x:110, y:10}, {x: 100, y: 10}];
 		equal(false, testX(box1, box2), "Overlap X");
 		equal(true, testY(box1, box2), "Overlap Y");
-		equal(false, testCollision(box1, box2), "Collision");
-		
+		equal(false, testCollision(box1, box2), "Collision");		
 	}
 );

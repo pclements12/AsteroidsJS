@@ -103,13 +103,13 @@ function Game(canvas){
 		powerUps.push(powerup);
 		powerup.power.init(document.createElement("span"));
 		activatePower(powerup.power);
-		powerUpSpan.appendChild(powerup.power.getLabel());
 	}
 	
 	function activatePower(power){
 		for(var i = 0; i < items.length; i++){
 			power.activate(items[i]);
 		}
+		getPowerUpLabels();
 	}
 	
 	function deactivatePower(power){
@@ -117,6 +117,16 @@ function Game(canvas){
 			power.deactivate(items[i]);
 		}
 		power.terminate();
+		getPowerUpLabels();
+	}
+	
+	function getPowerUpLabels(){
+		powerUpSpan.innerHTML = "";
+		for(var i = 0; i < powerUps.length; i++){
+			if(!powerUps[i].expired()){
+				powerUpSpan.appendChild(powerUps[i].power.getLabel());
+			}
+		}
 	}
 	
 	this.checkPowerUpExpirations = function(){
@@ -350,7 +360,6 @@ function Game(canvas){
 		effects = [];
 		this.removePowerUps();
 		var astrCount = 6 + level;
-		
 		for(var i = 0; i < astrCount; i++){
 			var astr = new asteroid(canvas);
 			this.addItem(astr);
