@@ -1678,7 +1678,7 @@ function Game(canvas){
 			// y = true;
 		// }
 		var x = this.overlapX(minX1, maxX1, minX2, maxX2);
-		var y = this.overlapY(maxY1, minY1, maxX2, minY2);
+		var y = this.overlapY(maxY1, minY1, maxY2, minY2);
 		return x && y;
 	}
 	
