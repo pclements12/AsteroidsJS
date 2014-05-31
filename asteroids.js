@@ -230,12 +230,21 @@ function alienship(canvas){
 	var lastTurn = (new Date()).getTime();
 	var lastShot = (new Date()).getTime();
 	var shotDelay = 0; //milliseconds
-	var radius = 14;
+	var radius = 14; //default is 14px for early 'dumb' aliens
+	var accuracy = 11; //+/- max degrees from player, 11 for 'dumb' aliens
 	this.points = radius * 10;
 
 	this.getLastTurn = function(){
 		return lastTurn;
 	}
+
+	/*this.setRadius = function(_radius){
+		this.radius = _radius;
+	}
+
+	this.setAccuracy = function(degreesError){
+		this.accuracy = degreesError;
+	}*/
 
 	function init(){
 		this.canvas = canvas;
@@ -243,25 +252,29 @@ function alienship(canvas){
 		this.x, this.y;
 		this.x = randomInt(0, this.canvas.width);
 		this.y = randomInt(0, this.canvas.height);
+		this.radius, this.accuracy;		
+		this.radius = radius;
+		this.accuracy = accuracy;
 		this.paint;
 		var level = game.getLevel();
-		if (level < 7) {
+		if (level < 6) {
 			this.setVelocity(	randomFloat(-level - 1, level + 1),
 						randomFloat(-level - 1, level + 1));
 		} else {
-			this.setVelocity(	randomFloat(-7, 7), 
-						randomFloat(-7, 7));
+			this.setVelocity(	randomFloat(-6, 6), 
+						randomFloat(-6, 6));
 		}
 		window.alien = this;
 		//set initial shot delay
-		this.shotDelay = randomInt(2000 - (10 * level), 5000 - (10 * level));
+		this.shotDelay = randomInt(2000 - (10 * (level < 15 ? level : 15)), 5000 - (10 * (level < 15 ? level : 15)));
 		this.turnDelay = randomInt(1000, 3500);
 	}	
 
 	this.canCollideWith = function(item){
 		var can =  
-			(item instanceof asteroid ||
+			(!(item instanceof alien_missile) &&
 			item instanceof missile ||
+			item instanceof asteroid ||
 			item instanceof spaceship);
 		return can;
 	}
@@ -285,12 +298,12 @@ function alienship(canvas){
 
 	this.getShipPoints = function(){
 		var degAngle = toDegrees(this.angle);
-		return [getArcCoordinates(this.x, this.y, normalizeAngle(0), radius),
-				getArcCoordinates(this.x, this.y, normalizeAngle(60), radius),
-				getArcCoordinates(this.x, this.y, normalizeAngle(120), radius),
-				getArcCoordinates(this.x, this.y, normalizeAngle(180), radius),
-				getArcCoordinates(this.x, this.y, normalizeAngle(240), radius),
-				getArcCoordinates(this.x, this.y, normalizeAngle(300), radius)];
+		return [getArcCoordinates(this.x, this.y, normalizeAngle(0), this.radius),
+				getArcCoordinates(this.x, this.y, normalizeAngle(60), this.radius),
+				getArcCoordinates(this.x, this.y, normalizeAngle(120), this.radius),
+				getArcCoordinates(this.x, this.y, normalizeAngle(180), this.radius),
+				getArcCoordinates(this.x, this.y, normalizeAngle(240), this.radius),
+				getArcCoordinates(this.x, this.y, normalizeAngle(300), this.radius)];
 	}
 
 	this.paint = function(){
@@ -307,15 +320,13 @@ function alienship(canvas){
 	this.shoot = function(){
 		lastShot = (new Date()).getTime();
 		var level = game.getLevel();
-		this.shotDelay = randomInt(2000 - (10 * level), 5000 - (10 * level));
+		this.shotDelay = randomInt(2000 - (10 * (level < 15 ? level : 15)), 5000 - (10 * (level < 15 ? level : 15)));
 		var p = game.getPlayer().getCoordinates();
-		var a = this.getCoordinates();
-		//set fuzz to be +/- 6 degrees for this guy (seems to be about the right balance)
-		//bumped fuzz up to +- 11, seemed too accurate to me -d
-		var fuzz = toRadians(randomFloat(-11, 11));
+		var a = this.getCoordinates(); 
+		var fuzz = toRadians(randomFloat(-this.accuracy, this.accuracy));
 		var vector = {x: p.x - a.x, y: p.y - a.y};
 		var angle = Math.atan(vector.y/vector.x);
-		var origin = vectorAdd(this.getCoordinates(), scaleVector(angle, radius + 3));
+		var origin = vectorAdd(this.getCoordinates(), scaleVector(angle, this.radius + 3));
 		if (a.x <= p.x) {	
 			game.addItem(new alien_missile(this.canvas, origin.x, origin.y, angle + fuzz, this.velocity.x, this.velocity.y, 3));
 		} else {
@@ -325,15 +336,15 @@ function alienship(canvas){
 
 	this.changeDirection = function() {
 		var max = game.getLevel() + 3;
-		if (max > 7) {
-			max = 7;
+		if (max > 6) {
+			max = 6;
 		}		
 		var xVel = this.getVelocity().x;
 		var yVel = this.getVelocity().y;
 		this.setVelocity(	xVel + randomFloat(-2, 2),
 					yVel + randomFloat(-2, 2));
 		if (this.getVelocity().x > max) {
-			this.setVelocity( 7, this.getVelocity().y);
+			this.setVelocity( max, this.getVelocity().y);
 		}
 		if (this.getVelocity().x < -max) {
 			this.setVelocity( -max, this.getVelocity().y);
@@ -1435,9 +1446,13 @@ function Game(canvas){
 			this.endRound();
 		}
 		else if ((new Date()).getTime() - roundStartTime > 
-				10000 - randomInt(0,(1000*(level <= 10 ? level : 10)))) {	
-			if (!this.hasAlien() && alienRespawn === 0) {
+				10000 - randomInt(0,(1000*(level < 10 ? level : 9)))) {	
+			if (!this.hasAlien() && alienRespawn === 0) {			
 				this.addItem(new alienship(canvas));
+				/*if (level > 4){
+					alien.setRadius(9);
+					alien.setAccuracy(6);
+				}*/
 				alienRespawn++;
 			}				
 		}
