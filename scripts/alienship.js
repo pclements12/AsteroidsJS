@@ -7,7 +7,8 @@ function alienship(canvas){
 	var lastTurn = (new Date()).getTime();
 	var lastShot = (new Date()).getTime();
 	var shotDelay = 0; //milliseconds
-	var radius = 14;
+	var radius = 14; //default is 14px for early 'dumb' aliens
+	var accuracy = 13; //+/- max degrees from player, 13 for 'dumb' aliens
 	this.points = radius * 10;
 
 	this.getLastTurn = function(){
@@ -22,12 +23,12 @@ function alienship(canvas){
 		this.y = randomInt(0, this.canvas.height);
 		this.paint;
 		var level = game.getLevel();
-		if (level < 7) {
+		if (level < 6) {
 			this.setVelocity(	randomFloat(-level - 1, level + 1),
 						randomFloat(-level - 1, level + 1));
 		} else {
-			this.setVelocity(	randomFloat(-7, 7), 
-						randomFloat(-7, 7));
+			this.setVelocity(	randomFloat(-6, 6), 
+						randomFloat(-6, 6));
 		}
 		window.alien = this;
 		//set initial shot delay
@@ -37,7 +38,8 @@ function alienship(canvas){
 
 	this.canCollideWith = function(item){
 		var can =  
-			(item instanceof asteroid ||
+			(!(item instanceof alien_missile) &&
+			item instanceof asteroid ||
 			item instanceof missile ||
 			item instanceof spaceship);
 		return can;
@@ -86,10 +88,8 @@ function alienship(canvas){
 		var level = game.getLevel();
 		this.shotDelay = randomInt(2000 - (10 * level), 5000 - (10 * level));
 		var p = game.getPlayer().getCoordinates();
-		var a = this.getCoordinates();
-		//set fuzz to be +/- 6 degrees for this guy (seems to be about the right balance)
-		//bumped fuzz up to +- 11, seemed too accurate to me -d
-		var fuzz = toRadians(randomFloat(-11, 11));
+		var a = this.getCoordinates(); 
+		var fuzz = toRadians(randomFloat(-accuracy, accuracy));
 		var vector = {x: p.x - a.x, y: p.y - a.y};
 		var angle = Math.atan(vector.y/vector.x);
 		var origin = vectorAdd(this.getCoordinates(), scaleVector(angle, radius + 3));
@@ -102,15 +102,15 @@ function alienship(canvas){
 
 	this.changeDirection = function() {
 		var max = game.getLevel() + 3;
-		if (max > 7) {
-			max = 7;
+		if (max > 6) {
+			max = 6;
 		}		
 		var xVel = this.getVelocity().x;
 		var yVel = this.getVelocity().y;
 		this.setVelocity(	xVel + randomFloat(-2, 2),
 					yVel + randomFloat(-2, 2));
 		if (this.getVelocity().x > max) {
-			this.setVelocity( 7, this.getVelocity().y);
+			this.setVelocity( max, this.getVelocity().y);
 		}
 		if (this.getVelocity().x < -max) {
 			this.setVelocity( -max, this.getVelocity().y);
