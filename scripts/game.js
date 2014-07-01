@@ -3,10 +3,14 @@ function Game(canvas){
 	var roundOver = true;
 	var gameOver = false;
 	var player;
+	var alien;
 	var items = [];
 	var effects = [];
 	var wait = false;
 	
+	var roundStartTime;
+	var alienRespawn; //counter to prevent aliens from continually spawning
+
 	var powers = [Powers.StickyShip, Powers.MultiShot, Powers.BigShot, Powers.OneUp, Powers.TimeFreeze];
 	
 	var powerUps = [];
@@ -22,7 +26,7 @@ function Game(canvas){
 	var powerUpSpan = document.getElementById("powerUp");
 	var instructionSpan = document.getElementById("instruction");
 	instructionSpan.style.left = canvas.width / 2 - 100 + "px";
-	
+
 	var keyListener = (function(game){
 		var leftInterval, rightInterval, upInterval, shootInterval;
 		var left = false;
@@ -99,13 +103,13 @@ function Game(canvas){
 		powerUps.push(powerup);
 		powerup.power.init(document.createElement("span"));
 		activatePower(powerup.power);
-		powerUpSpan.appendChild(powerup.power.getLabel());
 	}
 	
 	function activatePower(power){
 		for(var i = 0; i < items.length; i++){
 			power.activate(items[i]);
 		}
+		getPowerUpLabels();
 	}
 	
 	function deactivatePower(power){
@@ -113,6 +117,16 @@ function Game(canvas){
 			power.deactivate(items[i]);
 		}
 		power.terminate();
+		getPowerUpLabels();
+	}
+	
+	function getPowerUpLabels(){
+		powerUpSpan.innerHTML = "";
+		for(var i = 0; i < powerUps.length; i++){
+			if(!powerUps[i].expired()){
+				powerUpSpan.appendChild(powerUps[i].power.getLabel());
+			}
+		}
 	}
 	
 	this.checkPowerUpExpirations = function(){
@@ -165,14 +179,35 @@ function Game(canvas){
 				this.setInstruction("Enter to respawn");
 			}
 		}
-		else if(asteroids.length === 0){
+		else if(asteroids.length === 0 && alien.destroyed ||
+			 asteroids.length === 0 && !this.hasAlien()){
 			this.endRound();
+		}
+		else if ((new Date()).getTime() - roundStartTime > 
+				10000 - randomInt(0,(1000*(level < 10 ? level : 9)))) {	
+			if (!this.hasAlien() && alienRespawn === 0) {			
+				this.addItem(new alienship(canvas));
+				/*if (level > 4){
+					alien.setRadius(9);
+					alien.setAccuracy(6);
+				}*/
+				alienRespawn++;
+			}				
 		}
 		else{
 			this.setInstruction("");
 		}
 	}
 	
+	this.hasAlien = function() {			
+		for(var i = 0; i < items.length; i++) {
+			if (items[i] instanceof alienship) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	var pause = false;
 	this.pause = function(){
 		pause = true;
@@ -266,6 +301,14 @@ function Game(canvas){
 			game.addItem(new powerup(canvas, x, y, power));			
 		}
 	}
+
+	this.getLevel = function getLevel() {
+		return level;
+	}
+	
+	this.getPlayer = function(){
+		return player;
+	}
 	
 	this.getNextPowerUp = (function(){		
 		var bag = [[],[],[]];
@@ -296,6 +339,7 @@ function Game(canvas){
 	this.start = function(){
 		score = 0;		
 		player = new spaceship(canvas);
+		alien = new alienship(canvas);
 		this.started = true;
 		this.beginRound();
 	}
@@ -320,13 +364,14 @@ function Game(canvas){
 		effects = [];
 		this.removePowerUps();
 		var astrCount = 6 + level;
-		
 		for(var i = 0; i < astrCount; i++){
 			var astr = new asteroid(canvas);
 			this.addItem(astr);
 		}
 		player.reset();
 		this.addItem(player);
+		roundStartTime = (new Date()).getTime();
+		alienRespawn = 0;
 		roundOver = false;
 		requestAnimationFrame(this.draw);
 	}
@@ -341,6 +386,9 @@ function Game(canvas){
 	
 	this.handleGameOver = function(){
 		this.removePowerUps();
+		if (this.hasAlien() && !alien.destroyed) {
+			alien.destroy();
+		}
 		gameOver = true;
 		this.started = false;
 		this.displayMessage("<div>Game Over!</div>");
@@ -382,15 +430,44 @@ function Game(canvas){
 		
 		var x = false;
 		var y = false;
-		if(	(minX1 > minX2 && minX1 < maxX2) ||
-			(maxX1 > minX2 && maxX1 < maxX2)) {
-			x = true;
-		}
-		if( (minY1 > minY2 && minY1 < maxY2) ||
-			(maxY1 > minY2 && maxY1 < maxY2)) {
-			y = true;
-		}
+		
+		
+		// if(	(minX1 > minX2 && minX1 < maxX2) ||
+			// (maxX1 > minX2 && maxX1 < maxX2)) {
+			// x = true;
+		// }
+		// if( (minY1 > minY2 && minY1 < maxY2) ||
+			// (maxY1 > minY2 && maxY1 < maxY2)) {
+			// y = true;
+		// }
+		var x = this.overlapX(minX1, maxX1, minX2, maxX2);
+		var y = this.overlapY(maxY1, minY1, maxY2, minY2);
 		return x && y;
+	}
+	
+	this.overlapX = function(left1, right1, left2, right2){
+		var overlap =
+			//left1 is between points2
+			(left1 > left2 && left1 < right2) ||
+			//right1 is between points2
+			(right1 > left2 && right1 < right2) ||
+			
+			//left2 is between points1
+			(left2 > left1 && left2 < right1) ||
+			//right2 is between points1
+			(right2 > left1 && right2 < right1);
+		return overlap;
+	}
+	
+	//top = max y (since y is upside down in the canvas)
+	this.overlapY = function(top1, bottom1, top2, bottom2){
+		var overlap =
+			( top1 > bottom2 && top1 < top2) ||
+			( bottom1 > bottom2 && bottom1 < top2) ||
+			
+			(top2 > bottom1 && top2 < top1) ||
+			(bottom2 > bottom1 && bottom2 < top1);
+		return overlap;
 	}
 	
 	this.checkForCollisions = function(){

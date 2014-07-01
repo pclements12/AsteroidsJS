@@ -60,8 +60,8 @@ function spaceship(canvas){
 	this.getShipPoints = function(){
 		var degAngle = toDegrees(this.angle);
 		return [getArcCoordinates(this.x, this.y, degAngle, 20),
-				getArcCoordinates(this.x, this.y, normalizeAngle(degAngle - 140), 20),
-				getArcCoordinates(this.x, this.y, normalizeAngle(degAngle + 140), 20)];
+			getArcCoordinates(this.x, this.y, normalizeAngle(degAngle - 140), 20),
+			getArcCoordinates(this.x, this.y, normalizeAngle(degAngle + 140), 20)];
 	}
 	
 	this.getBoundingBox = function getBoundingBox(){
@@ -125,7 +125,8 @@ function spaceship(canvas){
 	this.canCollideWith = function(item){
 		var can =  
 			(item instanceof asteroid ||
-			item instanceof powerup);
+			item instanceof powerup ||
+			item instanceof alien_missile);
 		return can;
 	}
 	

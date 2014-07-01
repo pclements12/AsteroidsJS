@@ -65,3 +65,30 @@ function missile(canvas, x, y, angle, srcDx, srcDy, radius){
 	this.init();
 	return this;
 }
+
+
+alien_missile.prototype = new missile();
+function alien_missile(canvas, x, y, angle, srcDx, srcDy, radius){
+		
+	alien_missile.prototype.canvas = canvas;
+	this.ttl; //Time To Live
+	this.startTime;
+	this.x = x;
+	this.y = y;
+	var velocityMx = 10;
+	this.radius = radius ? radius : 3;
+	this.angle = angle;
+	this.velocity = {
+		x : 0,
+		y: 0
+	};
+
+	this.canCollideWith = function(item){
+		var can = (	item instanceof asteroid ||
+				item instanceof spaceship	);
+		return can;
+	}
+	
+	this.init();
+	return this;
+}

@@ -54,7 +54,7 @@ function asteroid(canvas, x, y, radius){
 	};
 	
 	this.destroy = function(){
-		if(this.radius > 5){
+		if(!this.destroyed && this.radius > 5){
 			this.generateChildren(2);
 		}
 		this.destroyed = true;

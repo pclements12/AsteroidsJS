@@ -16,12 +16,16 @@ function SpaceObject(canvas, game){
 		this.y = randomInt(0, this.canvas.height);
 	}
 	
-	function setVelocity(x, y){
+	this.setVelocity = function(x, y){
 		this.velocity.x = x;
 		this.velocity.y = y;
 	}
 	
-	function getVelocity(){
+	this.getCoordinates = function(){
+		return {x: this.x, y: this.y};
+	}
+	
+	this.getVelocity = function(){
 		return this.velocity;
 	}
 	

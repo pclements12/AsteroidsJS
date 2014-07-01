@@ -176,7 +176,8 @@ function power(args){
 			clearInterval(timerInterval);
 			timerInterval = null;
 		}
-		labelSpan.remove();
+		//labelSpan.parentNode.removeChild(labelSpan);
+		//labelSpan.remove();
 		if(args.terminate){
 			args.terminate();
 		}

@@ -7,7 +7,9 @@ var order = require('gulp-order');
 gulp.task('compress', function() {
   gulp.src('scripts/*.js')
 	.pipe(order([
+		"utils.js",
 		"spaceobject.js",
+		"alienship.js",
 		"asteroid.js",
 		"explosion.js",
 		"smoke.js",
