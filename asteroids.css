@@ -1,10 +1,28 @@
+#canvases{
+	height: 670px;
+	width: 1080px;
+}
 #space{
 	background-color: black;
 	cursor: url(images/dot.gif), default;
 }
+#touch-left{
+	z-index: 1;
+	position: absolute;
+	left: 0px;
+	top: 0px;
+	height: 100%;
+	width: 1080px;
+}
 
 body{
 	font-family: monospace;
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
 }
 
 #container{
@@ -52,6 +70,7 @@ span.warning{
 	font-size: 28px;
 	color: white;
 	position: absolute;
+	z-index: 10;
 }
 
 #highscoresTable{
