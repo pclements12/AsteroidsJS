@@ -1942,6 +1942,7 @@ function TouchModule(canvas, options){
 		if(event.target != canvas){
 			return;
 		}
+		event.preventDefault();
 		//can have multiple touches
 		for(var i = 0; i < event.changedTouches.length; i++){
 			var t = event.changedTouches[i];
@@ -1958,6 +1959,7 @@ function TouchModule(canvas, options){
 		if(event.target != canvas){
 			return;
 		}
+		event.preventDefault();
 		for(var i = 0; i < event.changedTouches.length;i++){
 			var t = event.changedTouches[i];
 			var touch = getTouch(t);
@@ -1984,6 +1986,7 @@ function TouchModule(canvas, options){
 		if(event.target != canvas){
 			return;
 		}
+		event.preventDefault();
 		for(var i = 0; i < event.changedTouches.length;i++){
 			var t = event.changedTouches[i];
 			var touch = getTouch(t);
