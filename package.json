@@ -1,0 +1,28 @@
+{
+  "name": "asteroidsjs",
+  "version": "1.0.0",
+  "description": "Old school asteroids",
+  "main": "asteroids.js",
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-concat": "^2.6.1",
+    "gulp-order": "^1.1.1",
+    "gulp-uglify": "^0.2.1",
+    "gulp-watch": "^0.6.10",
+    "qunitjs": "^1.14.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "gulp compress"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pclements12/AsteroidsJS.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pclements12/AsteroidsJS/issues"
+  },
+  "homepage": "https://github.com/pclements12/AsteroidsJS#readme"
+}

@@ -5,7 +5,7 @@ var watch = require('gulp-watch');
 var order = require('gulp-order');
 
 gulp.task('compress', function() {
-  gulp.src('scripts/*.js')
+  gulp.src('src/*.js')
 	.pipe(order([
 		"utils.js",
 		"spaceobject.js",
@@ -25,5 +25,5 @@ gulp.task('compress', function() {
 });
 
 gulp.task('default', function() {
-	gulp.watch('scripts/*.js', ['compress']);
+	gulp.watch('src/*.js', ['compress']);
 });
