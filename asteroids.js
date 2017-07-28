@@ -605,8 +605,9 @@ Powers.BigShot = new power({
 	phase: "update",
 	objectType: missile,
 	action : function(item){
-		item.radius = 20;		
-	}	
+		item.radius = 20;
+		console.log('big shot update:', item.radius);
+	}
 });
 
 Powers.StickyShip = new power({
@@ -640,7 +641,7 @@ Powers.TimeFreeze = new power({
 	label: "Freeze!",
 	phase: "update",
 	objectType: asteroid,
-    asteroids: [],
+  asteroids: [],
 	activate : function(item){
 		this.asteroids.push(item);
 		item.velocity = {x : 0, y: 0};
@@ -657,11 +658,50 @@ Powers.TimeFreeze = new power({
 	}
 });
 
+Powers.EMP = new power({
+	rarity: 1,
+	priority: 1,
+	label: "Shield",
+	phase: "update",
+	objectType: spaceship,
+	activate: function(item) {
+		if (this.activated) return;
+		this.spaceship = item;
+
+		var tip = this.spaceship.getShipPoints()[0];
+		this.emp = new missile(item.canvas, tip.x, tip.y, 0, 0, 0, 100);
+		this.emp.velocity = { x: 0, y: 0 };
+		game.addItem(this.emp);
+
+		this.objectType = missile;
+		this.activated = true;
+	},
+	action: function(item) {
+		if (!this.emp || this.emp.destroyed) {
+			var tip = this.spaceship.getShipPoints()[0];
+			this.emp = new missile(item.canvas, tip.x, tip.y, 0, 0, 0, 100);
+			this.emp.velocity = { x: 0, y: 0 };
+			this.emp.ttl = 10;
+			game.addItem(this.emp);
+		}
+		this.emp.radius = 100;
+		this.emp.x = this.spaceship.x;
+		this.emp.y = this.spaceship.y;
+	},
+	deactivate: function(item) {
+		this.spaceship = undefined;
+		this.emp && this.emp.destroy();
+		this.emp = undefined;
+	}
+
+});
 
 function power(args){
 /*
-	
+
 	args : {
+	  rarity: {Int}, how often the powerup is generated
+		priority: {Int}, 1 is highest priority, higher priority is excecuted later so it's effects clobber other effects if conflicting
 		label, {String}, powerup label to be displayed
 		phase, {String} 'update' or 'shoot'. if neither, action will never fire, but activate and deactivate will
 		objectType,{Object} constructor of objects that are affected by this powerup
@@ -682,11 +722,15 @@ function power(args){
 	if(!this.rarity){
 		this.rarity = 1;
 	}
+	this.priority = args.priority;
+	if(!this.priority){
+		this.priority = 99;
+	}
 	var labelSpan = null;
 	var timerSpan = null;
 	var timerInterval = null;
 	this.label = args.label;
-	
+
 	this.init = function(span){
 		startTime = (new Date()).getTime();
 		labelSpan = span;
@@ -698,7 +742,7 @@ function power(args){
 			if(time < 5){
 				timerSpan.className = "warning";
 			}
-			timerSpan.innerHTML = time;			
+			timerSpan.innerHTML = time;
 		}, 1000);
 		if(args.init){
 			args.init();
@@ -709,49 +753,49 @@ function power(args){
 		var now = (new Date()).getTime();
 		return now - startTime > duration;
 	}
-	
+
 	this.affectsItem = function(item){
 		var affects = (item instanceof args.objectType);
 		return affects;
 	}
-	
+
 	this.affectsPhase = function(phase){
 		return args.phase.toLowerCase() == phase.toLowerCase();
 	}
-	
+
 	this.getPhase = function(){
 		return args.phase;
 	}
-	
+
 	this.getLabel = function(){
 		return labelSpan;
 	}
-	
+
 	this.activate = function(item){
 		if(args.activate && this.affectsItem(item)){
 			args.activate(item);
 			return true;
-		
+
 		}
 		return false;
 	}
-	
-	this.deactivate = function(item){		
+
+	this.deactivate = function(item){
 		if(args.deactivate && this.affectsItem(item)){
 			args.deactivate(item);
 			return true;
 		}
 		return false;
 	}
-	
+
 	this.action = function(item){
 		if(args.action && this.affectsItem(item)){
 			args.action(item);
 			return true;
-		}		
+		}
 		return false;
-	}	
-	
+	}
+
 	this.terminate = function(){
 		if(timerInterval){
 			clearInterval(timerInterval);
@@ -764,6 +808,7 @@ function power(args){
 		}
 	}
 };
+
 powerup.prototype = new SpaceObject();
 function powerup(canvas, x, y, power){
 /////////////////////////////////////
@@ -1262,20 +1307,20 @@ function Game(canvas){
 	var items = [];
 	var effects = [];
 	var wait = false;
-	
+
 	var roundStartTime;
 	var alienRespawn; //counter to prevent aliens from continually spawning
 
-	var powers = [Powers.StickyShip, Powers.MultiShot, Powers.BigShot, Powers.OneUp, Powers.TimeFreeze];
-	
+	var powers = [Powers.StickyShip, Powers.MultiShot, Powers.BigShot, Powers.OneUp, Powers.TimeFreeze, Powers.EMP];
+
 	var powerUps = [];
 	var asteroids = [];
 	var score;
-	
+
 	var scoreLabel = document.getElementById("score");
 	var livesLabel = document.getElementById("lives");
 	var levelLabel = document.getElementById("level");
-	
+
 	var messageDiv = document.getElementById("message");
 	var highscoresDiv = document.getElementById("highscores");
 	var powerUpSpan = document.getElementById("powerUp");
@@ -1283,7 +1328,7 @@ function Game(canvas){
 	instructionSpan.style.left = canvas.width / 2 - 100 + "px";
 
 	var keyListener = (function(game){
-		
+
 		return function (e) {
 		    //prevent navigation keys from doing their default behaviors
 		    if ((!game.waiting() && e.keyCode == 32) || (e.keyCode >= 37 && e.keyCode <= 40)) {
@@ -1320,7 +1365,7 @@ function Game(canvas){
 			player.handleKeyInput(e);
 		}
 	})(this);
-	
+
 	document.addEventListener("keydown", keyListener);
 	document.addEventListener("keyup", keyListener);
 
@@ -1333,26 +1378,27 @@ function Game(canvas){
 		}
 		items.push(spaceObject);
 	}
-	
+
 	this.addEffect = function(spaceObject){
 		spaceObject.setGame(this);
 		effects.push(spaceObject);
 	}
-	
+
 	this.addPowerUp = function(powerup){
 		powerup.setGame(this);
 		powerUps.push(powerup);
+		powerUps = powerUps.sort((a, b) => b.power.priority - a.power.priority);
 		powerup.power.init(document.createElement("span"));
 		activatePower(powerup.power);
 	}
-	
+
 	function activatePower(power){
 		for(var i = 0; i < items.length; i++){
 			power.activate(items[i]);
 		}
 		getPowerUpLabels();
 	}
-	
+
 	function deactivatePower(power){
 		for(var i = 0; i < items.length; i++){
 			power.deactivate(items[i]);
@@ -1360,7 +1406,7 @@ function Game(canvas){
 		power.terminate();
 		getPowerUpLabels();
 	}
-	
+
 	function getPowerUpLabels(){
 		powerUpSpan.innerHTML = "";
 		for(var i = 0; i < powerUps.length; i++){
@@ -1369,7 +1415,7 @@ function Game(canvas){
 			}
 		}
 	}
-	
+
 	this.checkPowerUpExpirations = function(){
 		for(var i = 0; i < powerUps.length; i++){
 			if(powerUps[i].expired()){
@@ -1379,17 +1425,18 @@ function Game(canvas){
 			}
 		}
 	}
-	
+
 	this.getPowerUp = function(item, phase){
 		var poweredUp = false;
 		for(var i = 0; i < powerUps.length; i++){
 			if(powerUps[i].power.affectsPhase(phase)){
+				if (item instanceof missile) { console.log('missile power up priority: ', powerUps[i].power.label, powerUps[i].power.priority); }
 				poweredUp = powerUps[i].power.action(item) || poweredUp;
 			}
 		}
 		return poweredUp;
 	}
-	
+
 	this.removePowerUps = function(){
 		//remove all powerups at the end of a round
 		for(var i = 0; i < powerUps.length; i++){
@@ -1398,19 +1445,19 @@ function Game(canvas){
 		powerUps = [];
 		powerUpSpan.innerHTML = "";
 	}
-	
+
 	this.drawStatus = function(){
 		scoreLabel.innerHTML = score;
 		livesLabel.innerHTML = player.lives;
-		levelLabel.innerHTML = level;	
+		levelLabel.innerHTML = level;
 	}
-	
+
 	function dateTimeString (date){
 		var d = [date.getMonth() + 1, date.getDate(), date.getFullYear()].join("/");
 		var t = date.toLocaleTimeString();
 		return d + " " + t;
 	};
-	
+
 	this.updateGameState = function(){
 		if(player.destroyed){
 		    if (player.lives <= 0) {
@@ -1424,20 +1471,20 @@ function Game(canvas){
 			 asteroids.length === 0 && !this.hasAlien()){
 			this.endRound();
 		}
-		else if ((new Date()).getTime() - roundStartTime > 
-				10000 - randomInt(0,(1000*(level < 10 ? level : 9)))) {	
-			if (!this.hasAlien() && alienRespawn === 0) {			
+		else if ((new Date()).getTime() - roundStartTime >
+				10000 - randomInt(0,(1000*(level < 10 ? level : 9)))) {
+			if (!this.hasAlien() && alienRespawn === 0) {
 				alien = new alienship(canvas);
 				this.addItem(alien);
 				alienRespawn++;
-			}				
+			}
 		}
 		else{
 			this.setInstruction("");
 		}
 	}
-	
-	this.hasAlien = function() {			
+
+	this.hasAlien = function() {
 		for(var i = 0; i < items.length; i++) {
 			if (items[i] instanceof alienship) {
 				return true;
@@ -1451,7 +1498,7 @@ function Game(canvas){
 		pause = true;
 		this.displayMessage("Paused. Press 'o' to unpause");
 	}
-	
+
 	this.unpause = function(){
 		if(pause){
 			hideMessage();
@@ -1471,7 +1518,7 @@ function Game(canvas){
 	this.resume = function () {
 	    wait = false;
 	}
-	
+
 	// diagnostic variables (perf measurement)
 	var frameCount = 0;
 	var frameRateSpan = document.getElementById("frameRate");
@@ -1479,7 +1526,7 @@ function Game(canvas){
 		frameRateSpan.innerHTML = frameCount;
 		frameCount = 0;
 	}, 1000);
-	
+
 	this.draw = (function(ctx){
 		function d(){
 			frameCount++;
@@ -1529,26 +1576,26 @@ function Game(canvas){
 			d.apply(ctx, arguments);
 		}
 	})(this)
-	
+
 	this.checkForPowerUps = function(x, y){
 		//decide if we are going to spawn a powerup
 		if(randomInt(0, 50) < 3){
 			//decide which powerup to create based on rarity
-			
+
 			var power = this.getNextPowerUp();
-			game.addItem(new powerup(canvas, x, y, power));			
+			game.addItem(new powerup(canvas, x, y, power));
 		}
 	}
 
 	this.getLevel = function getLevel() {
 		return level;
 	}
-	
+
 	this.getPlayer = function(){
 		return player;
 	}
-	
-	this.getNextPowerUp = (function(){		
+
+	this.getNextPowerUp = (function(){
 		var bag = [[],[],[]];
 		for(var i = 0; i < powers.length; i++){
 			var power = powers[i];
@@ -1572,15 +1619,15 @@ function Game(canvas){
 			}
 		}
 	})()
-	
+
 	this.started = false;
 	this.start = function(){
-		score = 0;		
+		score = 0;
 		player = new spaceship(canvas);
 		this.started = true;
 		this.beginRound();
 	}
-	
+
 	this.reset = function(){
 		level = 0;
 		gameOver = false;
@@ -1591,7 +1638,7 @@ function Game(canvas){
 		this.removePowerUps();
 		this.start();
 	}
-	
+
 	this.beginRound = function(){
 		if(gameOver){
 			return;
@@ -1612,7 +1659,7 @@ function Game(canvas){
 		roundOver = false;
 		requestAnimationFrame(this.draw);
 	}
-	
+
 	this.endRound = function(){
 		level++;
 		roundOver = true;
@@ -1620,7 +1667,7 @@ function Game(canvas){
 		this.removePowerUps();
 		this.displayMessage("Round Complete!");
 	}
-	
+
 	this.handleGameOver = function(){
 		this.removePowerUps();
 		if (this.hasAlien() && !alien.destroyed) {
@@ -1654,7 +1701,7 @@ function Game(canvas){
 			});
 		});
 	}
-	
+
 	this.isCollision = function(box1, box2){
 		var minX1 = box1[0].x;
 		var minX2 = box2[0].x;
@@ -1664,11 +1711,11 @@ function Game(canvas){
 		var minY2 = box2[0].y;
 		var maxY1 = box1[2].y;
 		var maxY2 = box2[2].y;
-		
+
 		var x = false;
 		var y = false;
-		
-		
+
+
 		// if(	(minX1 > minX2 && minX1 < maxX2) ||
 			// (maxX1 > minX2 && maxX1 < maxX2)) {
 			// x = true;
@@ -1681,44 +1728,44 @@ function Game(canvas){
 		var y = this.overlapY(maxY1, minY1, maxY2, minY2);
 		return x && y;
 	}
-	
+
 	this.overlapX = function(left1, right1, left2, right2){
 		var overlap =
 			//left1 is between points2
 			(left1 > left2 && left1 < right2) ||
 			//right1 is between points2
 			(right1 > left2 && right1 < right2) ||
-			
+
 			//left2 is between points1
 			(left2 > left1 && left2 < right1) ||
 			//right2 is between points1
 			(right2 > left1 && right2 < right1);
 		return overlap;
 	}
-	
+
 	//top = max y (since y is upside down in the canvas)
 	this.overlapY = function(top1, bottom1, top2, bottom2){
 		var overlap =
 			( top1 > bottom2 && top1 < top2) ||
 			( bottom1 > bottom2 && bottom1 < top2) ||
-			
+
 			(top2 > bottom1 && top2 < top1) ||
 			(bottom2 > bottom1 && bottom2 < top1);
 		return overlap;
 	}
-	
+
 	this.checkForCollisions = function(){
 		for(var i = 0; i < items.length; i++){
 			var item1 = items[i];
 			if(item1.destroyed) continue;
 			for(var j = 0; j < items.length; j++){
 				var item2 = items[j];
-				if(	i === j || 
-					item2.destroyed || 
+				if(	i === j ||
+					item2.destroyed ||
 					!item1.canCollideWith(item2)){
 					continue;
 				}
-				
+
 				var box1 = item1.getBoundingBox();
 				var box2 = item2.getBoundingBox();
 				var d = distance({x: item1.x, y: item1.y}, {x: item2.x, y: item2.y});
@@ -1742,16 +1789,16 @@ function Game(canvas){
 						var radius = width1 > width2 ? width1 / 2 : width2 / 2;
 						this.addEffect(new explosion(canvas, point.x, point.y, radius));
 					}
-				}				
+				}
 			}
 		}
 	}
-	
+
 	function clear(){
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
 		hideMessage();
-	}	
-	
+	}
+
 	this.displayMessage = function(message, append){
 	    clear();
 	    if (append) {
@@ -1765,11 +1812,11 @@ function Game(canvas){
 		style.top = canvas.height/2 - messageDiv.clientHeight/2 + "px";
 		style.left = canvas.width/2 - messageDiv.clientWidth/2 + "px";
 	}
-	
+
 	function hideMessage(){
 		messageDiv.style.display = "none";
 	}
-	
+
 	this.setInstruction = function(instruction){
 		if(instruction != instructionSpan.innerHTML){
 			instructionSpan.innerHTML = instruction;
@@ -1797,17 +1844,17 @@ function Game(canvas){
 			window.localStorage.setItem("asteroidsjs.highscores", JSON.stringify(highscores));
 			this.displayHighscores(highscores, newHighScore, id);
 			def.resolve(highscores);
-		});	
+		});
 		return def.promise();
 	}
-	
+
 	this.getHighScores = function () {
 	    return $.ajax({
 	        url: "api/score",
 	        type: "GET"
 	    })
 	}
-	
+
 	this.getNickname = function(callback){
 		var self = this;
 		this.displayMessage("Enter Nickname:<div><input id='nickname'/><button id='postScore'>Submit</button></div>", true);
@@ -1815,10 +1862,10 @@ function Game(canvas){
 		input.focus();
 	    function post() {
 	        var name = input.value;
-	        callback.call(self, name);		
+	        callback.call(self, name);
 		}
 	    $("#postScore").one({"click": post, "touchstart": post});
-		
+
 	}
 
 	this.postNewScore = function () {
@@ -1831,9 +1878,9 @@ function Game(canvas){
 	            data: scoreObj
 	        }).done(def.resolve);
 		});
-	    return def.promise();	    
+	    return def.promise();
 	}
-	
+
 	this.displayHighscores = function (highscores, newHighScore, newScoreId) {
 		var html = "<div>Game Over!</div>";
 		if(newHighScore){
@@ -1852,31 +1899,31 @@ function Game(canvas){
 			else{
 				html += "<tr>";
 			}
-		    //"2014-04-29T20:22:09.62"			
+		    //"2014-04-29T20:22:09.62"
 			var dateTime = dateTimeString(new Date(aScore.date));
 			html += "<td class='name'>" + aScore.name + "</td>";
 			html += "<td class='score'>" + aScore.score + "</td>";
 			html += "<td class='level'>" + aScore.levelReached + "</td>";
 			html += "<td class='date'>" + dateTime + "</td>";
 			html += "</tr>";
-		}		
-		html += 
+		}
+		html +=
 			"</tbody>"
 		"</table>";
 		this.displayMessage(html);
 	}
-	
+
 	this.displayMessage("Press Enter to Start");
 	var leftTouch = new TouchModule(document.getElementById("touch-left"));
-	leftTouch.swipeLeft(function(event){		
+	leftTouch.swipeLeft(function(event){
 		player.handleKeyInput({type: "keydown", keyCode: 37});
 		player.handleKeyInput({type: "keyup", keyCode: 37});
 	});
-	leftTouch.swipeRight(function(event){		
+	leftTouch.swipeRight(function(event){
 		player.handleKeyInput({type: "keydown", keyCode: 39});
 		player.handleKeyInput({type: "keyup", keyCode: 39});
-	});	
-	leftTouch.swipeUp(function(event){		
+	});
+	leftTouch.swipeUp(function(event){
 		player.handleKeyInput({type: "keydown", keyCode: 38});
 		player.handleKeyInput({type: "keyup", keyCode: 38});
 	});
@@ -1908,9 +1955,9 @@ function Game(canvas){
 function TouchModule(canvas, options){
 	var defaults = {
 		discreteDirections: true, //disallows combinations of up/down & right/left swipes
-		delay: 300, //milliseconds		
+		delay: 300, //milliseconds
 	}
-	
+
 	function _merge(defaults, options){
 		for(var key in defaults){
 			if(options[key] == undefined){
@@ -1922,22 +1969,22 @@ function TouchModule(canvas, options){
 		options = {};
 	}
 	_merge(defaults, options);
-	
+
 	var addEventListener = canvas.addEventListener || canvas.attachEvent;
 	addEventListener("touchstart", handleStart, false);
 	addEventListener("touchend", handleEnd, false);
 	addEventListener("touchcancel", handleCancel, false);
 	addEventListener("touchleave", handleEnd, false);
 	addEventListener("touchmove", handleMove, false);
-	
+
 	var touchMap = {};
 	var touchHistory = {};
 	var touchNotification = {};
-	
+
 	function getTouch(t){
 		return {id: t.identifier, x: t.pageX, y: t.pageY, time: (new Date()).getTime()};
 	}
-	
+
 	function handleStart(event){
 		if(event.target != canvas){
 			return;
@@ -1954,7 +2001,7 @@ function TouchModule(canvas, options){
 			updateTouch(touch);
 		}
 	}
-	
+
 	function handleMove(event){
 		if(event.target != canvas){
 			return;
@@ -1968,7 +2015,7 @@ function TouchModule(canvas, options){
 			updateTouch(touch);
 		}
 	}
-	
+
 	function handleEnd(event){
 		if(event.target != canvas){
 			return;
@@ -1981,7 +2028,7 @@ function TouchModule(canvas, options){
 			removeTouch(touch);
 		};
 	}
-	
+
 	function handleCancel(event){
 		if(event.target != canvas){
 			return;
@@ -1995,7 +2042,7 @@ function TouchModule(canvas, options){
 			removeTouch(touch);
 		};
 	}
-	
+
 	function updateTouch(touch, end){
 		//evaluate the history of the touch to determine the gesture
 		var history = touchHistory[touch.id];
@@ -2003,7 +2050,7 @@ function TouchModule(canvas, options){
 		var previous = history.length > 10 ? history[history.length - 5] : first;
 		var last = history[history.length - 1];
 		touch.type = touch === first ? "start" : (end ? "end" : "move");
-		
+
 		var left, right, up, down;
 		left = right = up = down = false;
 		//check if x or y direction is most influential
@@ -2011,9 +2058,9 @@ function TouchModule(canvas, options){
 		var y = last.y - previous.y;
 		var dx = Math.abs(x);
 		var dy = Math.abs(y);
-		
+
 		var p = dx/(dx + dy);
-		
+
 		if(end && (last.time - first.time < 300) && (dx < 20 && dy < 20)){
 			notifyTap(touch);
 			return;
@@ -2026,7 +2073,7 @@ function TouchModule(canvas, options){
 			//too short of a drag to determine distance reliably
 			return;
 		}
-		
+
 		//diagonal swipe
 		if(options.discreteDirections && (dx > 20 || dy > 20) && (p > 0.3 && p < 0.7)){
 			if(x > 0){
@@ -2050,7 +2097,7 @@ function TouchModule(canvas, options){
 			else if(x < 0){
 				left = true;
 			}
-		}	
+		}
 		else{
 			if(y > 0){
 				down = true;
@@ -2059,7 +2106,7 @@ function TouchModule(canvas, options){
 				up = true;
 			}
 		}
-		
+
 		//Notify listeners
 		if(up){
 			if(left){
@@ -2098,13 +2145,13 @@ function TouchModule(canvas, options){
 				return;
 		}
 	}
-	
+
 	function removeTouch(touch){
 		delete touchMap[touch.id];
 		delete touchHistory[touch.id];
 	}
-	
-	
+
+
 	//functions to subscribe to parsed actions
 	//e.g. swipeLeft, swipeRight, swipeUp, swipeDown, tap
 	var _tap = [];
@@ -2113,12 +2160,12 @@ function TouchModule(canvas, options){
 	var _right = [];
 	var _up = [];
 	var _down = [];
-	
+
 	var _upLeft = [];
 	var _upRight = [];
 	var _downLeft = [];
 	var _downRight = [];
-	
+
 	function _remove(list, item){
 		for(var i = 0; i < list.length; i++){
 			if(list[i] === item){
@@ -2126,14 +2173,14 @@ function TouchModule(canvas, options){
 				break;
 			}
 		}
-	}	
-	
+	}
+
 	this.tap = function(callback, off){
 		if(off === true){
 			_remove(_tap, callback);
 		}
 		else{
-			_tap.push(callback);			
+			_tap.push(callback);
 		}
 	}
 	this.longTap = function(callback, off){
@@ -2149,7 +2196,7 @@ function TouchModule(canvas, options){
 			_remove(_left, callback);
 		}
 		else{
-			_left.push(callback);			
+			_left.push(callback);
 		}
 	}
 	this.swipeRight = function(callback, off){
@@ -2157,7 +2204,7 @@ function TouchModule(canvas, options){
 			_remove(_right, callback);
 		}
 		else{
-			_right.push(callback);			
+			_right.push(callback);
 		}
 	}
 	this.swipeUp = function(callback, off){
@@ -2165,7 +2212,7 @@ function TouchModule(canvas, options){
 			_remove(_up, callback);
 		}
 		else{
-			_up.push(callback);			
+			_up.push(callback);
 		}
 	}
 	this.swipeDown = function(callback, off){
@@ -2173,7 +2220,7 @@ function TouchModule(canvas, options){
 			_remove(_down, callback);
 		}
 		else{
-			_down.push(callback);			
+			_down.push(callback);
 		}
 	}
 	this.swipeUpLeft = function(callback, off){
@@ -2181,7 +2228,7 @@ function TouchModule(canvas, options){
 			_remove(_upLeft, callback);
 		}
 		else{
-			_upLeft.push(callback);			
+			_upLeft.push(callback);
 		}
 	}
 	this.swipeUpRight = function(callback, off){
@@ -2189,7 +2236,7 @@ function TouchModule(canvas, options){
 			_remove(_upRight, callback);
 		}
 		else{
-			_upRight.push(callback);			
+			_upRight.push(callback);
 		}
 	}
 	this.swipeDownLeft = function(callback, off){
@@ -2197,7 +2244,7 @@ function TouchModule(canvas, options){
 			_remove(_downLeft, callback);
 		}
 		else{
-			_downLeft.push(callback);			
+			_downLeft.push(callback);
 		}
 	}
 	this.swipeDownRight = function(callback, off){
@@ -2205,10 +2252,10 @@ function TouchModule(canvas, options){
 			_remove(_downRight, callback);
 		}
 		else{
-			_downRight.push(callback);			
+			_downRight.push(callback);
 		}
 	}
-	
+
 	function _notify(list, touch){
 		if(touchNotification[touch.id] !== undefined && touchNotification[touch.id] < options.delay){
 			return;
@@ -2218,7 +2265,7 @@ function TouchModule(canvas, options){
 			list[i].call(canvas, touch);
 		}
 	}
-	
+
 	function notifyTap(touch){
 		_notify(_tap, touch);
 	}
@@ -2250,6 +2297,7 @@ function TouchModule(canvas, options){
 		_notify(_downRight, touch);
 	}
 }
+
 window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
 				  window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
 if(!window.requestAnimationFrame){
