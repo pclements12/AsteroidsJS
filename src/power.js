@@ -25,7 +25,6 @@ Powers.BigShot = new power({
 	objectType: missile,
 	action : function(item){
 		item.radius = 20;
-		console.log('big shot update:', item.radius);
 	}
 });
 
