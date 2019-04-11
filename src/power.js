@@ -24,8 +24,8 @@ Powers.BigShot = new power({
 	phase: "update",
 	objectType: missile,
 	action : function(item){
-		item.radius = 20;		
-	}	
+		item.radius = 20;
+	}
 });
 
 Powers.StickyShip = new power({
@@ -59,7 +59,7 @@ Powers.TimeFreeze = new power({
 	label: "Freeze!",
 	phase: "update",
 	objectType: asteroid,
-    asteroids: [],
+  asteroids: [],
 	activate : function(item){
 		this.asteroids.push(item);
 		item.velocity = {x : 0, y: 0};
@@ -76,11 +76,50 @@ Powers.TimeFreeze = new power({
 	}
 });
 
+Powers.EMP = new power({
+	rarity: 1,
+	priority: 1,
+	label: "Shield",
+	phase: "update",
+	objectType: spaceship,
+	activate: function(item) {
+		if (this.activated) return;
+		this.spaceship = item;
+
+		var tip = this.spaceship.getShipPoints()[0];
+		this.emp = new missile(item.canvas, tip.x, tip.y, 0, 0, 0, 100);
+		this.emp.velocity = { x: 0, y: 0 };
+		game.addItem(this.emp);
+
+		this.objectType = missile;
+		this.activated = true;
+	},
+	action: function(item) {
+		if (!this.emp || this.emp.destroyed) {
+			var tip = this.spaceship.getShipPoints()[0];
+			this.emp = new missile(item.canvas, tip.x, tip.y, 0, 0, 0, 100);
+			this.emp.velocity = { x: 0, y: 0 };
+			this.emp.ttl = 10;
+			game.addItem(this.emp);
+		}
+		this.emp.radius = 100;
+		this.emp.x = this.spaceship.x;
+		this.emp.y = this.spaceship.y;
+	},
+	deactivate: function(item) {
+		this.spaceship = undefined;
+		this.emp && this.emp.destroy();
+		this.emp = undefined;
+	}
+
+});
 
 function power(args){
 /*
-	
+
 	args : {
+	  rarity: {Int}, how often the powerup is generated
+		priority: {Int}, 1 is highest priority, higher priority is excecuted later so it's effects clobber other effects if conflicting
 		label, {String}, powerup label to be displayed
 		phase, {String} 'update' or 'shoot'. if neither, action will never fire, but activate and deactivate will
 		objectType,{Object} constructor of objects that are affected by this powerup
@@ -101,11 +140,15 @@ function power(args){
 	if(!this.rarity){
 		this.rarity = 1;
 	}
+	this.priority = args.priority;
+	if(!this.priority){
+		this.priority = 99;
+	}
 	var labelSpan = null;
 	var timerSpan = null;
 	var timerInterval = null;
 	this.label = args.label;
-	
+
 	this.init = function(span){
 		startTime = (new Date()).getTime();
 		labelSpan = span;
@@ -117,7 +160,7 @@ function power(args){
 			if(time < 5){
 				timerSpan.className = "warning";
 			}
-			timerSpan.innerHTML = time;			
+			timerSpan.innerHTML = time;
 		}, 1000);
 		if(args.init){
 			args.init();
@@ -128,49 +171,49 @@ function power(args){
 		var now = (new Date()).getTime();
 		return now - startTime > duration;
 	}
-	
+
 	this.affectsItem = function(item){
 		var affects = (item instanceof args.objectType);
 		return affects;
 	}
-	
+
 	this.affectsPhase = function(phase){
 		return args.phase.toLowerCase() == phase.toLowerCase();
 	}
-	
+
 	this.getPhase = function(){
 		return args.phase;
 	}
-	
+
 	this.getLabel = function(){
 		return labelSpan;
 	}
-	
+
 	this.activate = function(item){
 		if(args.activate && this.affectsItem(item)){
 			args.activate(item);
 			return true;
-		
+
 		}
 		return false;
 	}
-	
-	this.deactivate = function(item){		
+
+	this.deactivate = function(item){
 		if(args.deactivate && this.affectsItem(item)){
 			args.deactivate(item);
 			return true;
 		}
 		return false;
 	}
-	
+
 	this.action = function(item){
 		if(args.action && this.affectsItem(item)){
 			args.action(item);
 			return true;
-		}		
+		}
 		return false;
-	}	
-	
+	}
+
 	this.terminate = function(){
 		if(timerInterval){
 			clearInterval(timerInterval);
