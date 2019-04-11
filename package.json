@@ -4,11 +4,11 @@
   "description": "Old school asteroids",
   "main": "asteroids.js",
   "devDependencies": {
-    "gulp": "^3.9.1",
+    "gulp": "^4.0.0",
     "gulp-concat": "^2.6.1",
     "gulp-order": "^1.1.1",
     "gulp-uglify": "^0.2.1",
-    "gulp-watch": "^0.6.10",
+    "gulp-watch": "^5.0.1",
     "qunitjs": "^1.14.0"
   },
   "scripts": {
