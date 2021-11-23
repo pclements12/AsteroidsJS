@@ -4,8 +4,8 @@ var concat = require('gulp-concat');
 var watch = require('gulp-watch');
 var order = require('gulp-order');
 
-gulp.task('compress', function() {
-  gulp.src('src/*.js')
+gulp.task('build', function() {
+  return gulp.src('src/*.js')
 	.pipe(order([
 		"utils.js",
 		"spaceobject.js",
@@ -24,6 +24,6 @@ gulp.task('compress', function() {
     .pipe(gulp.dest('.'))
 });
 
-gulp.task('default', function() {
-	gulp.watch('src/*.js', ['compress']);
+gulp.task('watch', function() {
+	return gulp.watch('src/*.js', gulp.series('build'));
 });
