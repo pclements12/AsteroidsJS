@@ -171,16 +171,20 @@ function Game(canvas){
 			 asteroids.length === 0 && !this.hasAlien()){
 			this.endRound();
 		}
-		else if ((new Date()).getTime() - roundStartTime >
-				10000 - randomInt(0,(1000*(level < 10 ? level : 9)))) {
-			if (!this.hasAlien() && alienRespawn === 0) {
+		else{
+			this.setInstruction("");
+			this.attemptAlienSpawn();
+		}
+	}
+
+	this.attemptAlienSpawn = function() {
+		if (!this.hasAlien() && alienRespawn === 0) {
+			if ((new Date()).getTime() - roundStartTime >
+					10000 - randomInt(0,(1000*(level < 10 ? level : 9)))) {
 				alien = new alienship(canvas);
 				this.addItem(alien);
 				alienRespawn++;
 			}
-		}
-		else{
-			this.setInstruction("");
 		}
 	}
 
