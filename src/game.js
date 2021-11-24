@@ -372,7 +372,7 @@ function Game(canvas){
 		this.displayMessage("Round Complete!");
 	}
 
-	this.handleGameOver = function(){
+	this.handleGameOver = async function(){
 		this.removePowerUps();
 		if (this.hasAlien() && !alien.destroyed) {
 			alien.destroy();
@@ -381,29 +381,9 @@ function Game(canvas){
 		this.started = false;
 		this.displayMessage("<div>Game Over!</div>");
 		this.wait();
-		var self = this;
-		self.getHighScores().done(function (highscores) {
-			highscores.splice(20);
-			self.postNewScore().done(function (score) {
-				var id = score.ID;
-				highscores.push(score);
-				function comparator(a, b) {
-					if (b.score === a.score) return 0;
-					return b.score - a.score;
-				}
-				highscores.sort(comparator);
-				var newHighScore = highscores[0].ID === id;
-				self.displayHighscores(highscores, newHighScore, id);
-				self.resume();
-				self.setInstruction("Enter to Play Again.");
-			});
-		})
-		.fail(function(){
-			self.getLocalHighScores().done(function(){
-				self.resume();
-				self.setInstruction("Enter to Play Again.");
-			});
-		});
+		await this.handleHighScoreEntry();
+		this.resume();
+		this.setInstruction("Enter to Play Again.");
 	}
 
 	this.isCollision = function(box1, box2){
@@ -527,62 +507,89 @@ function Game(canvas){
 		}
 	}
 
-	this.getLocalHighScores = function() {
-		var def = $.Deferred();
-		this.getNickname(function(name){
-			var highscores = JSON.parse(window.localStorage.getItem("asteroidsjs.highscores"));
-			if(!highscores){
-				highscores = [];
-			}
-			function compare(score1, score2){
-				if(score1.score === score2.score){
-					return 0;
-				}
-				return score2.score - score1.score;
-			}
-			var id = highscores.length;
-			highscores.push({ID:id, name: name, levelReached: level, score: score, date: dateTimeString(new Date())});
-			highscores.sort(compare);
-			highscores.splice(20); //only keep the top 20!
-			var newHighScore = highscores[0].ID === id;
-			window.localStorage.setItem("asteroidsjs.highscores", JSON.stringify(highscores));
-			this.displayHighscores(highscores, newHighScore, id);
-			def.resolve(highscores);
-		});
-		return def.promise();
-	}
-
-	this.getHighScores = function () {
-	    return $.ajax({
-	        url: "api/score",
-	        type: "GET"
-	    })
-	}
-
-	this.getNickname = function(callback){
-		var self = this;
-		this.displayMessage("Enter Nickname:<div><input id='nickname'/><button id='postScore'>Submit</button></div>", true);
-	    var input = document.getElementById("nickname");
-		input.focus();
-	    function post() {
-	        var name = input.value;
-	        callback.call(self, name);
+	this.getLocalHighScores = async function() {
+		var highscores = JSON.parse(window.localStorage.getItem("asteroidsjs.highscores"));
+		if(!highscores){
+			highscores = [];
 		}
-	    $("#postScore").one({"click": post, "touchstart": post});
-
+		return highscores;
 	}
 
-	this.postNewScore = function () {
-	    var def = $.Deferred();
-	    this.getNickname(function(name){
-			var scoreObj = { name: name, score: score, levelReached: level };
-	        $.ajax({
-	            url: "api/score",
-	            type: "POST",
-	            data: scoreObj
-	        }).done(def.resolve);
+	this.saveLocalHighScores = function(highscores) {
+		window.localStorage.setItem("asteroidsjs.highscores", JSON.stringify(highscores));
+	}
+
+	this.getAPIHighScores = async function() {
+		const response = await fetch("api/score");
+		return response.json();
+	}
+
+	this.postAPINewScore = async function (name, score, level) {
+		var scoreObj = { name: name, score: score, levelReached: level };
+		const response = await fetch('api/score', {
+			method: "POST",
+			body: JSON.stringify(scoreObj)
 		});
-	    return def.promise();
+		return response.json();
+	}
+
+	this.handleHighScoreEntry = async function () {
+		let highscores = [];
+		let scoreObj = {};
+		const name = await this.getNickname();
+	    try {
+			highscores = await this.getAPIHighScores();
+			scoreObj = await this.postAPINewScore(name, this.player.score, this.level);
+			highscores.push(score);
+		} catch (err) {
+			console.warn("Failed to get high scores from API, falling back to localstorage scores")
+			highscores = await this.getLocalHighScores();
+			scoreObj = { ID: new Date().getTime().toString(), name: name, score: score, levelReached: level, date: dateTimeString(new Date()) };
+			console.log("New Score", scoreObj);
+			highscores.push(scoreObj);
+		}
+		highscores = this.calculateHighScoreList(highscores);
+		var newHighScore = highscores[0].ID === scoreObj.ID;
+		const containsScore = highscores.findIndex((s => s.ID === scoreObj.ID)) > -1;
+		if(!containsScore) {
+			// show the player last even if they didn't make the board
+			highscores.push(scoreObj);
+		}
+		this.displayHighscores(highscores, newHighScore, scoreObj.ID);
+		// backup to local either way
+		this.saveLocalHighScores(highscores);
+	}
+
+	this.calculateHighScoreList = function(highscores) {
+		function compare(score1, score2){
+			if(score1.score === score2.score){
+				return 0;
+			}
+			return score2.score - score1.score;
+		}
+		
+		highscores.sort(compare);
+		highscores.splice(20); //only keep the top 20!
+		return highscores;
+	}
+
+	this.getNickname = async function(){
+		return new Promise((resolve, reject) => {
+			this.displayMessage("Enter Nickname:<div><input id='nickname'/><button id='postScore'>Submit</button></div>", true);
+			var input = document.getElementById("nickname");
+			input.focus();
+			const postScoreButton = document.querySelector("#postScore");
+			function post() {
+				// Cleanup listeners
+				postScoreButton.removeEventListener("click", post);
+				postScoreButton.removeEventListener("touchstart", post);
+				// resolve
+				var name = input.value;
+				resolve(name);
+			}
+			postScoreButton.addEventListener("click", post)
+			postScoreButton.addEventListener("touchstart", post)
+		});
 	}
 
 	this.displayHighscores = function (highscores, newHighScore, newScoreId) {
@@ -595,9 +602,11 @@ function Game(canvas){
             "<tbody>" +
 			"<tr><th>Name</th><th>Score</th><th>Level</th><th>Date</th></tr>";
 
+		let containsNewScore = false;
 		for(var i = 0; i < highscores.length; i++){
 			var aScore = highscores[i];
 			if(aScore.ID === newScoreId){
+				containsNewScore = true;
 				html += "<tr class='playerScore'>";
 			}
 			else{
@@ -655,349 +664,4 @@ function Game(canvas){
 	});
 
 	return this;
-}
-function TouchModule(canvas, options){
-	var defaults = {
-		discreteDirections: true, //disallows combinations of up/down & right/left swipes
-		delay: 300, //milliseconds
-	}
-
-	function _merge(defaults, options){
-		for(var key in defaults){
-			if(options[key] == undefined){
-				options[key] = defaults[key];
-			}
-		}
-	}
-	if(!options){
-		options = {};
-	}
-	_merge(defaults, options);
-
-	var addEventListener = canvas.addEventListener || canvas.attachEvent;
-	addEventListener("touchstart", handleStart, false);
-	addEventListener("touchend", handleEnd, false);
-	addEventListener("touchcancel", handleCancel, false);
-	addEventListener("touchleave", handleEnd, false);
-	addEventListener("touchmove", handleMove, false);
-
-	var touchMap = {};
-	var touchHistory = {};
-	var touchNotification = {};
-
-	function getTouch(t){
-		return {id: t.identifier, x: t.pageX, y: t.pageY, time: (new Date()).getTime()};
-	}
-
-	function handleStart(event){
-		if(event.target != canvas){
-			return;
-		}
-		event.preventDefault();
-		//can have multiple touches
-		for(var i = 0; i < event.changedTouches.length; i++){
-			var t = event.changedTouches[i];
-			var touch = getTouch(t);
-			if(!touchMap[touch.id]){
-				touchMap[touch.id] = touch;
-				touchHistory[touch.id] = [touch];
-			}
-			updateTouch(touch);
-		}
-	}
-
-	function handleMove(event){
-		if(event.target != canvas){
-			return;
-		}
-		event.preventDefault();
-		for(var i = 0; i < event.changedTouches.length;i++){
-			var t = event.changedTouches[i];
-			var touch = getTouch(t);
-			touchHistory[touch.id].push(touch);
-			touchMap[touch.id] = touch;
-			updateTouch(touch);
-		}
-	}
-
-	function handleEnd(event){
-		if(event.target != canvas){
-			return;
-		}
-		for(var i = 0; i < event.changedTouches.length;i++){
-			var t = event.changedTouches[i];
-			var touch = getTouch(t);
-			touchHistory[touch.id].push(touch);
-			updateTouch(touch, true);
-			removeTouch(touch);
-		};
-	}
-
-	function handleCancel(event){
-		if(event.target != canvas){
-			return;
-		}
-		event.preventDefault();
-		for(var i = 0; i < event.changedTouches.length;i++){
-			var t = event.changedTouches[i];
-			var touch = getTouch(t);
-			touchHistory[touch.id].push(touch);
-			updateTouch(touch, true);
-			removeTouch(touch);
-		};
-	}
-
-	function updateTouch(touch, end){
-		//evaluate the history of the touch to determine the gesture
-		var history = touchHistory[touch.id];
-		var first = history[0];
-		var previous = history.length > 10 ? history[history.length - 5] : first;
-		var last = history[history.length - 1];
-		touch.type = touch === first ? "start" : (end ? "end" : "move");
-
-		var left, right, up, down;
-		left = right = up = down = false;
-		//check if x or y direction is most influential
-		var x = last.x - previous.x;
-		var y = last.y - previous.y;
-		var dx = Math.abs(x);
-		var dy = Math.abs(y);
-
-		var p = dx/(dx + dy);
-
-		if(end && (last.time - first.time < 300) && (dx < 20 && dy < 20)){
-			notifyTap(touch);
-			return;
-		}
-		else if(end && (last.time - first.time > 300) && dx < 20 && dy < 20){
-			notifyLongTap(touch);
-			return;
-		}
-		if(dx < 5 && dy < 5){
-			//too short of a drag to determine distance reliably
-			return;
-		}
-
-		//diagonal swipe
-		if(options.discreteDirections && (dx > 20 || dy > 20) && (p > 0.3 && p < 0.7)){
-			if(x > 0){
-				right = true;
-			}
-			else if(x < 0){
-				left = true;
-			}
-			if(y > 0){
-				down = true;
-			}
-			else if(y < 0){
-				up = true;
-			}
-		}
-		//horizontal/vertical swipe
-		else if(dx > dy){
-			if(x > 0){
-				right = true;
-			}
-			else if(x < 0){
-				left = true;
-			}
-		}
-		else{
-			if(y > 0){
-				down = true;
-			}
-			else if(y < 0){
-				up = true;
-			}
-		}
-
-		//Notify listeners
-		if(up){
-			if(left){
-				notifyUpLeft(touch);
-				return;
-			}
-			else if(right){
-				notifyUpRight(touch);
-				return;
-			}
-			else{
-				notifyUp(touch);
-				return;
-			}
-		}
-		if(down){
-			if(left){
-				notifyDownLeft(touch);
-				return;
-			}
-			else if(right){
-				notifyDownRight(touch);
-				return;
-			}
-			else{
-				notifyDown(touch);
-				return;
-			}
-		}
-		if(left){
-			notifyLeft(touch);
-				return;
-		}
-		if(right){
-			notifyRight(touch);
-				return;
-		}
-	}
-
-	function removeTouch(touch){
-		delete touchMap[touch.id];
-		delete touchHistory[touch.id];
-	}
-
-
-	//functions to subscribe to parsed actions
-	//e.g. swipeLeft, swipeRight, swipeUp, swipeDown, tap
-	var _tap = [];
-	var _longTap = [];
-	var _left = [];
-	var _right = [];
-	var _up = [];
-	var _down = [];
-
-	var _upLeft = [];
-	var _upRight = [];
-	var _downLeft = [];
-	var _downRight = [];
-
-	function _remove(list, item){
-		for(var i = 0; i < list.length; i++){
-			if(list[i] === item){
-				list.splice(i, 1);
-				break;
-			}
-		}
-	}
-
-	this.tap = function(callback, off){
-		if(off === true){
-			_remove(_tap, callback);
-		}
-		else{
-			_tap.push(callback);
-		}
-	}
-	this.longTap = function(callback, off){
-		if(off === true){
-			_remove(_longTap, callback);
-		}
-		else{
-			_longTap.push(callback);
-		}
-	}
-	this.swipeLeft = function(callback, off){
-		if(off === true){
-			_remove(_left, callback);
-		}
-		else{
-			_left.push(callback);
-		}
-	}
-	this.swipeRight = function(callback, off){
-		if(off === true){
-			_remove(_right, callback);
-		}
-		else{
-			_right.push(callback);
-		}
-	}
-	this.swipeUp = function(callback, off){
-		if(off === true){
-			_remove(_up, callback);
-		}
-		else{
-			_up.push(callback);
-		}
-	}
-	this.swipeDown = function(callback, off){
-		if(off === true){
-			_remove(_down, callback);
-		}
-		else{
-			_down.push(callback);
-		}
-	}
-	this.swipeUpLeft = function(callback, off){
-		if(off === true){
-			_remove(_upLeft, callback);
-		}
-		else{
-			_upLeft.push(callback);
-		}
-	}
-	this.swipeUpRight = function(callback, off){
-		if(off === true){
-			_remove(_upRight, callback);
-		}
-		else{
-			_upRight.push(callback);
-		}
-	}
-	this.swipeDownLeft = function(callback, off){
-		if(off === true){
-			_remove(_downLeft, callback);
-		}
-		else{
-			_downLeft.push(callback);
-		}
-	}
-	this.swipeDownRight = function(callback, off){
-		if(off === true){
-			_remove(_downRight, callback);
-		}
-		else{
-			_downRight.push(callback);
-		}
-	}
-
-	function _notify(list, touch){
-		if(touchNotification[touch.id] !== undefined && touchNotification[touch.id] < options.delay){
-			return;
-		}
-		touchNotification[touch.id] = (new Date()).getTime();
-		for(var i = 0; i < list.length; i++){
-			list[i].call(canvas, touch);
-		}
-	}
-
-	function notifyTap(touch){
-		_notify(_tap, touch);
-	}
-	function notifyLongTap(touch){
-		_notify(_longTap, touch);
-	}
-	function notifyLeft(touch){
-		_notify(_left, touch);
-	}
-	function notifyRight(touch){
-		_notify(_right, touch);
-	}
-	function notifyUp(touch){
-		_notify(_up, touch);
-	}
-	function notifyDown(touch){
-		_notify(_down, touch);
-	}
-	function notifyUpLeft(touch){
-		_notify(_upLeft, touch);
-	}
-	function notifyUpRight(touch){
-		_notify(_upRight, touch);
-	}
-	function notifyDownLeft(touch){
-		_notify(_downLeft, touch);
-	}
-	function notifyDownRight(touch){
-		_notify(_downRight, touch);
-	}
 }

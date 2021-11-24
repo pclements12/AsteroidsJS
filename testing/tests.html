@@ -14,33 +14,26 @@
   <div id="qunit"></div>
   <div id="qunit-fixture"></div>
 	<div id='container'>
-		<canvas id="space"></canvas>
-		<div id="info">
-			<span class="label">Score:</span><span id="score">0</span>
-			<span class="label">Lives:</span><span id="lives">0</span>
-			<span class="label">Level:</span><span id="level">0</span>
-		</div>
-		<div id="message"></div>
-		<div id="details">
-			<span class="label">frame rate:</span><span id="frameRate"></span><span> fps</span>
-			<span id="powerUp"></span>
-		</div>
-		<span id="instruction"></span>
-	</div>
+    <div id="canvases">
+      <canvas id="space"></canvas>
+      <canvas id="touch-left"></canvas>
+    </div>
+    <div id="info">
+      <span class="label">Score:</span><span id="score">0</span>
+      <span class="label">Lives:</span><span id="lives">0</span>
+      <span class="label">Level:</span><span id="level">0</span>
+    </div>
+    <div id="message"></div>
+    <div id="details">
+      <span class="label">frame rate:</span><span id="frameRate"></span><span> fps</span>
+      <span id="powerUp"></span>
+    </div>
+    <span id="instruction"></span>
+  </div>
 	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
   
   <script src="../node_modules/qunitjs/qunit/qunit.js"></script>
-  <script src="../scripts/utils.js"></script>
-  <script src="../scripts/spaceobject.js"></script>
-  <script src="../scripts/alienship.js"></script>
-  <script src="../scripts/asteroid.js"></script>
-  <script src="../scripts/explosion.js"></script>
-  <script src="../scripts/smoke.js"></script>
-  <script src="../scripts/missile.js"></script>
-  <script src="../scripts/spaceship.js"></script>
-  <script src="../scripts/power.js"></script>
-  <script src="../scripts/powerup.js"></script>
-  <script src="../scripts/game.js"></script>
+  <script src="../asteroids.js"></script>
   <script src="test.js"></script>
 </body>
 </html>
