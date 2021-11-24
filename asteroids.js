@@ -640,14 +640,17 @@ Powers.TimeFreeze = new power({
 	label: "Freeze!",
 	phase: "update",
 	objectType: asteroid,
-  asteroids: [],
+	init: function(){
+		this.asteroids = [];
+	},
 	activate : function(item){
 		this.asteroids.push(item);
 		item.velocity = {x : 0, y: 0};
 	},
 	action : function(item){
 		if(contains(this.asteroids, item) < 0){
-			this.activate(item);
+			this.asteroids.push(item);
+			item.velocity = {x : 0, y: 0};
 		}
 	},
 	deactivate : function(item){
@@ -657,49 +660,75 @@ Powers.TimeFreeze = new power({
 	}
 });
 
-Powers.EMP = new power({
-	rarity: 1,
+Powers.Shield = new power({
+	rarity: 2,
 	priority: 1,
 	label: "Shield",
 	phase: "update",
 	objectType: spaceship,
 	activate: function(item) {
 		if (this.activated) return;
-		this.spaceship = item;
 
-		var tip = this.spaceship.getShipPoints()[0];
-		this.emp = new missile(item.canvas, tip.x, tip.y, 0, 0, 0, 100);
-		this.emp.velocity = { x: 0, y: 0 };
-		game.addItem(this.emp);
+		var tip = game.getPlayer().getShipPoints()[0];
+		this.shield = new missile(item.canvas, tip.x, tip.y, 0, 0, 0, 100);
+		this.shield.velocity = { x: 0, y: 0 };
+		game.addItem(this.shield);
 
 		this.objectType = missile;
 		this.activated = true;
 	},
 	action: function(item) {
-		if (!this.emp || this.emp.destroyed) {
-			var tip = this.spaceship.getShipPoints()[0];
-			this.emp = new missile(item.canvas, tip.x, tip.y, 0, 0, 0, 100);
-			this.emp.velocity = { x: 0, y: 0 };
-			this.emp.ttl = 10;
-			game.addItem(this.emp);
+		if(!this.shield || this.shield.destroyed) {
+			this.destroy();
 		}
-		this.emp.radius = 100;
-		this.emp.x = this.spaceship.x;
-		this.emp.y = this.spaceship.y;
+		if(this.shield && game.getPlayer().destroyed) {
+			this.destroy();
+		}
+		if(this.shield) {
+			// Update the shield location to follow the player
+			// override the default missile radius and ttl
+			this.shield.ttl = 10;
+			this.shield.radius = 100;
+			this.shield.x = game.getPlayer().x;
+			this.shield.y = game.getPlayer().y;
+		}
 	},
-	deactivate: function(item) {
-		this.spaceship = undefined;
-		this.emp && this.emp.destroy();
-		this.emp = undefined;
+	terminate: function() {
+		if(!this.activated) return;
+		this.shield && this.shield.destroy();
+		this.shield = undefined;
+		this.objectType = spaceship;
+		this.activated = false;
 	}
+});
 
+Powers.EMP = new power({
+	rarity: 3,
+	priority: 1,
+	label: "EMP",
+	phase: "update",
+	objectType: asteroid,
+	duration: 10,
+	init: function() {
+		this.location = { x: game.getPlayer().x, y: game.getPlayer().y };
+		this.blastRadius = 300;
+		this.blast = new missile(game.getPlayer().canvas, this.location.x, this.location.y, 0, 0, 0, this.blastRadius);
+		this.blast.velocity = { x: 0, y: 0 };
+		game.addItem(this.blast);
+	},
+	activate: function(item) {
+		if(distance({x: item.x, y: item.y}, this.location) < this.blastRadius) {
+			item.destroy();
+			game.addEffect(new explosion(item.canvas, item.x, item.y, item.radius));
+		}
+	}
 });
 
 function power(args){
 /*
 
 	args : {
-	  rarity: {Int}, how often the powerup is generated
+	  	rarity: {Int}, how often the powerup is generated, higher rarity is generated less often
 		priority: {Int}, 1 is highest priority, higher priority is excecuted later so it's effects clobber other effects if conflicting
 		label, {String}, powerup label to be displayed
 		phase, {String} 'update' or 'shoot'. if neither, action will never fire, but activate and deactivate will
@@ -731,6 +760,7 @@ function power(args){
 	this.label = args.label;
 
 	this.init = function(span){
+		duration = args.duration || 15 * 1000;
 		startTime = (new Date()).getTime();
 		labelSpan = span;
 		labelSpan.innerHTML = args.label;
@@ -744,8 +774,13 @@ function power(args){
 			timerSpan.innerHTML = time;
 		}, 1000);
 		if(args.init){
-			args.init();
+			args.init.call(this);
 		}
+	}
+
+	// Call this to end the power before it's timer is up
+	this.destroy = function() {
+		duration = 0;
 	}
 
 	this.expired = function(){
@@ -772,16 +807,15 @@ function power(args){
 
 	this.activate = function(item){
 		if(args.activate && this.affectsItem(item)){
-			args.activate(item);
+			args.activate.call(this, item);
 			return true;
-
 		}
 		return false;
 	}
 
 	this.deactivate = function(item){
 		if(args.deactivate && this.affectsItem(item)){
-			args.deactivate(item);
+			args.deactivate.call(this, item);
 			return true;
 		}
 		return false;
@@ -789,7 +823,7 @@ function power(args){
 
 	this.action = function(item){
 		if(args.action && this.affectsItem(item)){
-			args.action(item);
+			args.action.call(this, item);
 			return true;
 		}
 		return false;
@@ -800,10 +834,8 @@ function power(args){
 			clearInterval(timerInterval);
 			timerInterval = null;
 		}
-		//labelSpan.parentNode.removeChild(labelSpan);
-		//labelSpan.remove();
 		if(args.terminate){
-			args.terminate();
+			args.terminate.call(this);
 		}
 	}
 };
@@ -943,7 +975,7 @@ function missile(canvas, x, y, angle, srcDx, srcDy, radius){
 	}
 	
 	this.canCollideWith = function(item){
-		var can = (item instanceof asteroid);
+		var can = (item instanceof asteroid || item instanceof alienship);
 		return can;
 	}
 
@@ -1029,7 +1061,6 @@ function spaceship(canvas){
 		this.velocity.y += dy;		
 		
 		if(this.getVelocity() > MAX_SPEED){
-			console.log("over max velocity, limiting", this.getVelocity(), this.velocity);
 			this.velocity.x -= dx;
 			this.velocity.y -= dy;
 		}
@@ -1677,7 +1708,7 @@ function Game(canvas){
 	var roundStartTime;
 	var alienRespawn; //counter to prevent aliens from continually spawning
 
-	var powers = [Powers.StickyShip, Powers.MultiShot, Powers.BigShot, Powers.OneUp, Powers.TimeFreeze, Powers.EMP];
+	var powers = [Powers.StickyShip, Powers.MultiShot, Powers.BigShot, Powers.OneUp, Powers.TimeFreeze, Powers.Shield];
 
 	var powerUps = [];
 	var asteroids = [];
@@ -1796,7 +1827,6 @@ function Game(canvas){
 		var poweredUp = false;
 		for(var i = 0; i < powerUps.length; i++){
 			if(powerUps[i].power.affectsPhase(phase)){
-				if (item instanceof missile) { console.log('missile power up priority: ', powerUps[i].power.label, powerUps[i].power.priority); }
 				poweredUp = powerUps[i].power.action(item) || poweredUp;
 			}
 		}
@@ -1833,7 +1863,7 @@ function Game(canvas){
 				this.setInstruction("Enter to respawn");
 			}
 		}
-		else if(asteroids.length === 0 && alien.destroyed ||
+		else if(asteroids.length === 0 && (alien && alien.destroyed) ||
 			 asteroids.length === 0 && !this.hasAlien()){
 			this.endRound();
 		}
@@ -2361,4 +2391,3 @@ var space = document.getElementById("space");
 space.height = 670;
 space.width  = 1080;
 var game = new Game(space);
-
