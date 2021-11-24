@@ -11,7 +11,7 @@ function Game(canvas){
 	var roundStartTime;
 	var alienRespawn; //counter to prevent aliens from continually spawning
 
-	var powers = [Powers.StickyShip, Powers.MultiShot, Powers.BigShot, Powers.OneUp, Powers.TimeFreeze, Powers.EMP];
+	var powers = [Powers.StickyShip, Powers.MultiShot, Powers.BigShot, Powers.OneUp, Powers.TimeFreeze, Powers.Shield];
 
 	var powerUps = [];
 	var asteroids = [];
@@ -130,7 +130,6 @@ function Game(canvas){
 		var poweredUp = false;
 		for(var i = 0; i < powerUps.length; i++){
 			if(powerUps[i].power.affectsPhase(phase)){
-				if (item instanceof missile) { console.log('missile power up priority: ', powerUps[i].power.label, powerUps[i].power.priority); }
 				poweredUp = powerUps[i].power.action(item) || poweredUp;
 			}
 		}
@@ -167,7 +166,7 @@ function Game(canvas){
 				this.setInstruction("Enter to respawn");
 			}
 		}
-		else if(asteroids.length === 0 && alien.destroyed ||
+		else if(asteroids.length === 0 && (alien && alien.destroyed) ||
 			 asteroids.length === 0 && !this.hasAlien()){
 			this.endRound();
 		}

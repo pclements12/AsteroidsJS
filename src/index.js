@@ -28,4 +28,3 @@ var space = document.getElementById("space");
 space.height = 670;
 space.width  = 1080;
 var game = new Game(space);
-

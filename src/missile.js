@@ -50,7 +50,7 @@ function missile(canvas, x, y, angle, srcDx, srcDy, radius){
 	}
 	
 	this.canCollideWith = function(item){
-		var can = (item instanceof asteroid);
+		var can = (item instanceof asteroid || item instanceof alienship);
 		return can;
 	}
 

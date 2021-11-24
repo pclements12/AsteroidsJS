@@ -41,7 +41,6 @@ function spaceship(canvas){
 		this.velocity.y += dy;		
 		
 		if(this.getVelocity() > MAX_SPEED){
-			console.log("over max velocity, limiting", this.getVelocity(), this.velocity);
 			this.velocity.x -= dx;
 			this.velocity.y -= dy;
 		}

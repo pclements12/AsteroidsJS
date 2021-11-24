@@ -4,7 +4,6 @@
 }
 #space{
 	background-color: black;
-	cursor: url(images/dot.gif), default;
 }
 #touch-left{
 	z-index: 1;
@@ -23,6 +22,7 @@ body{
 	-moz-user-select: none;
 	-ms-user-select: none;
 	user-select: none;
+	cursor: url(images/dot.gif), default;
 }
 
 #container{
