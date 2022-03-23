@@ -42,8 +42,8 @@ function missile(canvas, x, y, angle, srcDx, srcDy, radius){
 		var ctx = this.canvas.getContext("2d");
 		//arc(x, y, radius, startAngle, endAngle, anticlockwise)
 		ctx.beginPath();
-		ctx.strokeStyle = 'rgb(0, 100, 255)';
-		ctx.fillStyle = 'rgba(0, 100, 255, 0.2)';
+		ctx.strokeStyle = 'rgb(90, 175, 255)';
+		ctx.fillStyle = 'rgb(90, 175, 255, 0.7)';
 		ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
 		ctx.fill();
 		ctx.stroke();
